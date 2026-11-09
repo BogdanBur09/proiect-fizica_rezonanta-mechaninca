@@ -284,15 +284,15 @@
             $$c_{\\text{eff}}(v) = c_\\theta - \\frac{1}{2} \\rho v B^3 A_1^*$$
           </div>
           <p>unde \\(B = 11{,}9\\text{ m}\\) este lățimea tablierului, iar \\(A_1^*\\) este coeficientul aeroelastic de flutter.
-          Pentru secțiunea în formă de „H” masiv a podului Tacoma, \\(A_1^* > 0\\) (forța acționează <em>în fază cu viteza</em>).</p>
+          Pentru secțiunea în formă de „H” masiv a podului Tacoma, \\(A_1^* \\gt 0\\) (forța acționează <em>în fază cu viteza</em>).</p>
         </div>
 
         <div class="theory-section">
           <h3>4. Instabilitatea Divergentă (Auto-Excitație)</h3>
-          <p>Când viteza vântului depășește viteza critică (\\(v > v_{\\text{crit}} \\approx 16\\text{ m/s}\\)):</p>
+          <p>Când viteza vântului depășește viteza critică (\\(v \\gt v_{\\text{crit}} \\approx 16\\text{ m/s}\\)):</p>
           <div class="equation-card">
             <div class="equation-card__label">Condiția de Flutter Divergent</div>
-            $$c_{\\text{eff}} < 0 \\quad \\Longrightarrow \\quad \\theta(t) = \\theta_0 \\, e^{\\gamma_{\\text{net}} t} \\cos(\\omega_{\\text{tors}} t - \\phi) \\quad (\\gamma_{\\text{net}} > 0)$$
+            $$c_{\\text{eff}} \\lt 0 \\quad \\Longrightarrow \\quad \\theta(t) = \\theta_0 \\, e^{\\gamma_{\\text{net}} t} \\cos(\\omega_{\\text{tors}} t - \\phi) \\quad (\\gamma_{\\text{net}} \\gt 0)$$
           </div>
           <p>Sistemul extrage mai multă energie mecanică din vânt în fiecare semielipsă decât poate disipa prin frecare structurală internă. Amplitudinea unghiulară \\(\\theta(t)\\) crește exponențial (a atins peste \\(\\pm 35^\\circ\\)) până când cablurile verticale și niturile de oțel cedează ireversibil!</p>
         </div>
