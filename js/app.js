@@ -23,11 +23,33 @@
       SettingsManager.init();
 
       // Cache DOM refs
+      this._appContainer = document.getElementById('app-container');
       this._wrapper = document.getElementById('slide-wrapper');
       this._select = document.getElementById('slide-select');
       this._counter = document.querySelector('.topbar__slide-counter');
       this._prevBtn = document.getElementById('prev-btn');
       this._nextBtn = document.getElementById('next-btn');
+      this._tabBtnSim = document.getElementById('tab-btn-sim');
+      this._tabBtnTheory = document.getElementById('tab-btn-theory');
+
+      // Default mobile view: simulation active
+      this.currentMobileTab = 'simulation';
+      if (this._appContainer) {
+        this._appContainer.classList.add('view-sim');
+      }
+
+      if (this._tabBtnSim && this._tabBtnTheory) {
+        this._tabBtnSim.addEventListener('click', () => this.setMobileTab('simulation'));
+        this._tabBtnTheory.addEventListener('click', () => this.setMobileTab('theory'));
+      }
+
+      // Orientation change / window resize handler for active simulation
+      window.addEventListener('orientationchange', () => {
+        setTimeout(() => {
+          const sim = this.simulations[this.currentSlide];
+          if (sim) { sim.resize(); sim.render(); }
+        }, 120);
+      });
 
       this.totalSlides = SlidesData.length;
 
@@ -80,6 +102,32 @@
       this._renderMath();
 
       console.log(`[App] Initialized with ${this.totalSlides} slides.`);
+    },
+
+    setMobileTab(tab) {
+      this.currentMobileTab = tab;
+      if (!this._appContainer) return;
+
+      if (tab === 'simulation') {
+        this._appContainer.classList.remove('view-theory');
+        this._appContainer.classList.add('view-sim');
+        if (this._tabBtnSim) this._tabBtnSim.classList.add('active');
+        if (this._tabBtnTheory) this._tabBtnTheory.classList.remove('active');
+
+        const sim = this.simulations[this.currentSlide];
+        if (sim) {
+          setTimeout(() => {
+            sim.resize();
+            sim.render();
+          }, 40);
+        }
+      } else {
+        this._appContainer.classList.remove('view-sim');
+        this._appContainer.classList.add('view-theory');
+        if (this._tabBtnTheory) this._tabBtnTheory.classList.add('active');
+        if (this._tabBtnSim) this._tabBtnSim.classList.remove('active');
+        this._renderMathForSlide(this.currentSlide);
+      }
     },
 
     _buildSlides() {

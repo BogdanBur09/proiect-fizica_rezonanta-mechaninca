@@ -494,120 +494,140 @@
       ctx.fillRect(0, 0, W, H);
 
       // Top status alert banner
-      this._drawStatusBanner(ctx, W);
+      const bannerH = H < 280 ? 20 : 26;
+      this._drawStatusBanner(ctx, W, bannerH);
+
+      const topY = bannerH + 4;
+      const availH = H - topY - 4;
 
       // Left Panel: Mechanical Rig (44% width)
       const mechW = W * 0.44;
-      this._drawMechanicalRig(ctx, mechW, H);
+      this._drawMechanicalRig(ctx, mechW, H, topY, availH);
 
-      // Right Panel: Scientific Visualizers
+      // Right Panel: Scientific Visualizers (54% width)
       const rightX = W * 0.46;
       const rightW = W * 0.52;
 
-      // 1. Response Curve Graph (Top)
-      const graphH = H * 0.38;
-      this._drawResonanceGraph(ctx, rightX, H * 0.09, rightW, graphH);
+      if (availH < 220) {
+        // Compact height (mobile landscape): 2 responsive instruments
+        const gH = availH * 0.58;
+        this._drawResonanceGraph(ctx, rightX, topY, rightW, gH);
+        this._drawPhasorGauge(ctx, rightX, topY + gH + 4, rightW, availH - gH - 4);
+      } else {
+        // Standard height: 3 instruments with proportional layout
+        const graphH = availH * 0.44;
+        this._drawResonanceGraph(ctx, rightX, topY, rightW, graphH);
 
-      // 2. Phasor & Phase Lag Gauge (Middle)
-      const phasorY = H * 0.49;
-      const phasorH = H * 0.20;
-      this._drawPhasorGauge(ctx, rightX, phasorY, rightW, phasorH);
+        const remH = availH - graphH - 8;
+        const phasorH = remH * 0.46;
+        const oscH = remH - phasorH - 6;
 
-      // 3. Dual Oscilloscope (Bottom)
-      const oscY = H * 0.71;
-      const oscH = H * 0.26;
-      this._drawOscilloscope(ctx, rightX, oscY, rightW, oscH);
+        this._drawPhasorGauge(ctx, rightX, topY + graphH + 4, rightW, phasorH);
+        this._drawOscilloscope(ctx, rightX, topY + graphH + phasorH + 8, rightW, oscH);
+      }
     }
 
-    _drawStatusBanner(ctx, W) {
-      const bannerH = 28;
+    _drawStatusBanner(ctx, W, bannerH) {
+      const h = bannerH || 26;
       let text, color, bg;
+      const isNarrow = W < 540;
 
       if (this.isAtResonance) {
         const pulse = 0.6 + 0.4 * Math.sin(this.time * 8);
         color = '#ff5252';
         bg = `rgba(255, 82, 82, ${0.15 + pulse * 0.12})`;
-        text = `⚡ REZONANȚĂ EXACTĂ ACTIVĂ | ω ≈ ω₀ | Amplitudine Amplificată de ${this.transmissibility.toFixed(1)}× | Defazaj: ${this.phaseDegrees.toFixed(0)}°`;
+        text = isNarrow
+          ? `⚡ REZONANȚĂ! A = ${this.transmissibility.toFixed(1)}× | δ = 90°`
+          : `⚡ REZONANȚĂ EXACTĂ ACTIVĂ | ω ≈ ω₀ | Amplitudine Amplificată de ${this.transmissibility.toFixed(1)}× | Defazaj: ${this.phaseDegrees.toFixed(0)}°`;
       } else if (this.isNearResonance) {
         color = '#ffab40';
         bg = 'rgba(255, 171, 64, 0.12)';
-        text = `⚠️ ZONĂ DE REZONANȚĂ | Amplificare ${this.transmissibility.toFixed(1)}× | Defazaj: ${this.phaseDegrees.toFixed(0)}°`;
+        text = isNarrow
+          ? `⚠️ ZONĂ REZONANȚĂ | A = ${this.transmissibility.toFixed(1)}× | δ = ${this.phaseDegrees.toFixed(0)}°`
+          : `⚠️ ZONĂ DE REZONANȚĂ | Amplificare ${this.transmissibility.toFixed(1)}× | Defazaj: ${this.phaseDegrees.toFixed(0)}°`;
       } else if (this.r < 1.0) {
         color = '#00e5ff';
         bg = 'rgba(0, 229, 255, 0.08)';
-        text = `◄ REGIM SUB-REZONANT (Forța elastică domină | Mișcare în fază cu excitația, δ = ${this.phaseDegrees.toFixed(0)}°)`;
+        text = isNarrow
+          ? `◄ SUB-REZONANT | δ = ${this.phaseDegrees.toFixed(0)}° (în fază)`
+          : `◄ REGIM SUB-REZONANT (Forța domină | Mișcare în fază, δ = ${this.phaseDegrees.toFixed(0)}°)`;
       } else {
         color = '#b388ff';
         bg = 'rgba(179, 136, 255, 0.08)';
-        text = `► REGIM SUPRA-REZONANT (Inerția domină | Mișcare în opoziție de fază, δ = ${this.phaseDegrees.toFixed(0)}°)`;
+        text = isNarrow
+          ? `► SUPRA-REZONANT | δ = ${this.phaseDegrees.toFixed(0)}° (antifază)`
+          : `► REGIM SUPRA-REZONANT (Inerția domină | Opoziție de fază, δ = ${this.phaseDegrees.toFixed(0)}°)`;
       }
 
       ctx.fillStyle = bg;
-      ctx.fillRect(0, 0, W, bannerH);
+      ctx.fillRect(0, 0, W, h);
       ctx.strokeStyle = color + '40';
       ctx.lineWidth = 1;
       ctx.beginPath();
-      ctx.moveTo(0, bannerH);
-      ctx.lineTo(W, bannerH);
+      ctx.moveTo(0, h);
+      ctx.lineTo(W, h);
       ctx.stroke();
 
-      ctx.font = 'bold 11px Inter, sans-serif';
+      const fontSize = isNarrow ? 9 : (W < 750 ? 10 : 11);
+      ctx.font = `bold ${fontSize}px Inter, sans-serif`;
       ctx.fillStyle = color;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText(text, W / 2, bannerH / 2);
+      ctx.fillText(text, W / 2, h / 2);
     }
 
-    _drawMechanicalRig(ctx, W, H) {
-      const centerX = W * 0.52;
-      const pxPerMeter = H * 0.22;
+    _drawMechanicalRig(ctx, W, H, topY, availH) {
+      const centerX = W * 0.54;
+      const curTopY = topY || 30;
+      const curAvailH = availH || (H - curTopY - 4);
+      const pxPerMeter = Math.min(curAvailH * 0.22, 70);
 
       // Shaker base position
-      const shakerRestY = H * 0.18;
-      const shakerY = shakerRestY + this.ys * pxPerMeter * 0.5;
+      const shakerRestY = curTopY + curAvailH * 0.14;
+      const shakerY = shakerRestY + this.ys * pxPerMeter * 0.45;
 
       // Mass position
-      const massRestY = H * 0.56;
+      const massRestY = curTopY + curAvailH * 0.58;
       const massY = massRestY + this.x * pxPerMeter;
-      const massW = 92;
-      const massH = 46;
+      const massW = Math.min(W * 0.54, 86);
+      const massH = Math.min(curAvailH * 0.16, 42);
 
       // --- Vertical Ruler on Left Edge ---
-      this._drawRuler(ctx, 24, H * 0.12, H * 0.78, massRestY, pxPerMeter);
+      this._drawRuler(ctx, 22, curTopY + 4, curAvailH - 8, massRestY, pxPerMeter);
 
       // --- Shaker Mechanism (Motor + Flywheel + Crossbar) ---
-      this._drawMotorShaker(ctx, centerX, H * 0.08, shakerY);
+      this._drawMotorShaker(ctx, centerX, curTopY + 14, shakerY);
 
       // --- Coiled Spring (Left of mass) ---
-      const springX = centerX - 26;
-      this._drawCoiledSpring(ctx, springX, shakerY + 12, massY - massH / 2);
+      const springX = centerX - Math.min(24, massW * 0.28);
+      this._drawCoiledSpring(ctx, springX, shakerY + 10, massY - massH / 2);
 
       // --- Hydraulic Damper (Right of mass) ---
-      const damperX = centerX + 26;
-      this._drawHydraulicDamper(ctx, damperX, shakerY + 12, massY - massH / 2);
+      const damperX = centerX + Math.min(24, massW * 0.28);
+      this._drawHydraulicDamper(ctx, damperX, shakerY + 10, massY - massH / 2);
 
       // --- Equilibrium Reference Line ---
       ctx.save();
-      ctx.setLineDash([4, 4]);
+      ctx.setLineDash([3, 3]);
       ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
       ctx.lineWidth = 1;
       ctx.beginPath();
-      ctx.moveTo(40, massRestY);
-      ctx.lineTo(W - 20, massRestY);
+      ctx.moveTo(36, massRestY);
+      ctx.lineTo(W - 14, massRestY);
       ctx.stroke();
       ctx.restore();
 
       ctx.fillStyle = '#5c5e78';
-      ctx.font = '9px JetBrains Mono, monospace';
+      ctx.font = '8px JetBrains Mono, monospace';
       ctx.textAlign = 'left';
-      ctx.fillText('Echilibru (x = 0)', 44, massRestY - 4);
+      ctx.fillText('x = 0', 38, massRestY - 3);
 
       // --- Mass Block ---
       this._drawMassBlock(ctx, centerX, massY, massW, massH);
 
       // --- Real-time Force Vectors ---
       const showVectors = !window.SettingsManager || window.SettingsManager.get('showVectors');
-      if (showVectors) {
+      if (showVectors && curAvailH > 180) {
         this._drawForceVectors(ctx, centerX, massY, massW, massH, pxPerMeter);
       }
     }
@@ -1017,15 +1037,17 @@
       ctx.fill();
       ctx.stroke();
 
+      const isCompact = gw < 270;
+
       // Title
       ctx.fillStyle = '#9e9eb8';
       ctx.font = 'bold 10px Inter, sans-serif';
       ctx.textAlign = 'left';
-      ctx.fillText('Diagramă Fazorială & Defazaj δ', gx + 10, gy + 14);
+      ctx.fillText(isCompact ? 'Fazori & Defazaj δ' : 'Diagramă Fazorială & Defazaj δ', gx + 10, gy + 13);
 
-      const cx = gx + 60;
-      const cy = gy + gh / 2 + 6;
-      const R = gh * 0.36;
+      const R = Math.min(gh * 0.35, isCompact ? gw * 0.17 : 34);
+      const cx = isCompact ? gx + R + 10 : gx + 52;
+      const cy = gy + gh / 2 + 5;
 
       // Dial circle
       ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
@@ -1055,19 +1077,19 @@
       ctx.stroke();
 
       // Info Texts on right of dial
-      const textX = gx + 130;
-      ctx.font = '10px JetBrains Mono, monospace';
+      const textX = cx + R + 8;
+      ctx.font = '8.5px JetBrains Mono, monospace';
       ctx.textAlign = 'left';
 
       ctx.fillStyle = '#69f0ae';
-      ctx.fillText('→ Vector Shaker (Excitație F₀)', textX, gy + 28);
+      ctx.fillText(isCompact ? 'F₀ (Forță)' : '→ Vector F₀ (Excitație)', textX, gy + 26);
 
       ctx.fillStyle = '#00e5ff';
-      ctx.fillText('→ Vector Masă (Răspuns X)', textX, gy + 44);
+      ctx.fillText(isCompact ? 'X (Masă)' : '→ Vector X (Masă)', textX, gy + 39);
 
       ctx.fillStyle = this.isAtResonance ? '#ff5252' : '#ffab40';
-      ctx.font = 'bold 11px JetBrains Mono, monospace';
-      ctx.fillText(`Unghi Defazaj: δ = ${this.phaseDegrees.toFixed(1)}° (${(this.phaseLag / Math.PI).toFixed(2)}π rad)`, textX, gy + 64);
+      ctx.font = 'bold 9px JetBrains Mono, monospace';
+      ctx.fillText(`δ = ${this.phaseDegrees.toFixed(1)}°`, textX, gy + 53);
     }
 
     _drawOscilloscope(ctx, gx, gy, gw, gh) {
@@ -1081,14 +1103,16 @@
       ctx.fill();
       ctx.stroke();
 
+      const isCompact = gw < 270;
+
       // Title & Legend
       ctx.fillStyle = '#9e9eb8';
-      ctx.font = 'bold 10px Inter, sans-serif';
+      ctx.font = 'bold 9.5px Inter, sans-serif';
       ctx.textAlign = 'left';
-      ctx.fillText('Osciloscop: Semnal Excitație y(t) vs Răspuns Masă x(t)', gx + 10, gy + 14);
+      ctx.fillText(isCompact ? 'Osciloscop: y(t) vs x(t)' : 'Osciloscop: Excitație y(t) vs Masă x(t)', gx + 10, gy + 13);
 
       // Zero baseline
-      const midY = gy + gh * 0.55;
+      const midY = gy + gh * 0.52;
       ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
       ctx.setLineDash([3, 3]);
       ctx.beginPath();
@@ -1097,8 +1121,8 @@
       ctx.stroke();
       ctx.setLineDash([]);
 
-      const plotW = gw - 30;
-      const scaleY = (gh * 0.35) / Math.max(0.6, this.theoreticalA * 1.1);
+      const plotW = Math.max(20, gw - 28);
+      const scaleY = (gh * 0.34) / Math.max(0.6, this.theoreticalA * 1.1);
 
       // Trace 1: Shaker (Dashed green)
       ctx.beginPath();
@@ -1107,7 +1131,7 @@
       ctx.setLineDash([3, 2]);
 
       for (let i = 0; i < this.historyShaker.length; i++) {
-        const xx = gx + 15 + (i / this.historyLength) * plotW;
+        const xx = gx + 14 + (i / this.historyLength) * plotW;
         const yy = midY - this.historyShaker[i] * scaleY;
         if (i === 0) ctx.moveTo(xx, yy);
         else ctx.lineTo(xx, yy);
@@ -1121,12 +1145,19 @@
       ctx.lineWidth = 2.0;
 
       for (let i = 0; i < this.historyMass.length; i++) {
-        const xx = gx + 15 + (i / this.historyLength) * plotW;
+        const xx = gx + 14 + (i / this.historyLength) * plotW;
         const yy = midY - this.historyMass[i] * scaleY;
         if (i === 0) ctx.moveTo(xx, yy);
         else ctx.lineTo(xx, yy);
       }
       ctx.stroke();
+
+      // Legend
+      ctx.font = '8px JetBrains Mono, monospace';
+      ctx.fillStyle = '#69f0ae';
+      ctx.fillText('y(t) Shaker', gx + 10, gy + gh - 4);
+      ctx.fillStyle = this.isAtResonance ? '#ff5252' : '#00e5ff';
+      ctx.fillText('x(t) Masă', gx + Math.min(85, gw * 0.45), gy + gh - 4);
     }
   }
 

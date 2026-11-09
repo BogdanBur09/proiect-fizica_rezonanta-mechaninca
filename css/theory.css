@@ -250,27 +250,42 @@
   font-size: 1.1em;
 }
 
-/* --- Responsive --- */
-@media (max-width: 900px) {
+/* --- Responsive Theory Panel --- */
+@media (max-width: 900px), (max-height: 550px) {
   .slide__theory {
-    padding: 16px 18px 20px;
+    padding: 14px 14px 40px;
+    height: 100% !important;
+    max-height: 100% !important;
   }
   .slide__theory-title {
     font-size: 1.05rem;
   }
+  .theory-section {
+    margin-bottom: 16px;
+  }
   .theory-section p {
-    font-size: 0.82rem;
+    font-size: 0.84rem;
+    line-height: 1.6;
+  }
+  .equation-card {
+    padding: 10px 12px;
+    margin: 10px 0;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .equation-card .katex-display {
+    margin: 2px 0;
   }
 }
 
-@media (max-width: 600px) {
+@media (max-width: 480px) {
   .slide__theory {
-    padding: 12px 14px 16px;
+    padding: 12px 10px 36px;
   }
   .slide__theory-title {
     font-size: 0.95rem;
   }
-  .equation-card {
-    padding: 10px 12px;
+  .theory-section p {
+    font-size: 0.8rem;
   }
 }

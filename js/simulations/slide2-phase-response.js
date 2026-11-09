@@ -293,23 +293,30 @@
     }
 
     _drawBanner(ctx, W) {
-      const h = 28;
+      const h = this.H < 280 ? 20 : 26;
       let text, color, bg;
       const isRes = Math.abs(this.deltaDeg - 90) < 8;
+      const isNarrow = W < 540;
 
       if (isRes) {
         const pulse = 0.6 + 0.4 * Math.sin(this.time * 8);
         color = '#ff5252';
         bg = `rgba(255, 82, 82, ${0.15 + pulse * 0.1})`;
-        text = `⚡ REZONANȚĂ DE FAZĂ (δ = ${this.deltaDeg.toFixed(1)}° ≈ 90°) | Forța F₀ în fază cu Viteza v | Putere Maximă ⟨P⟩ = ${this.meanPower.toFixed(2)} W`;
+        text = isNarrow
+          ? `⚡ REZONANȚĂ FAZĂ | δ = 90° | ⟨P⟩ = ${this.meanPower.toFixed(1)}W`
+          : `⚡ REZONANȚĂ DE FAZĂ (δ = ${this.deltaDeg.toFixed(1)}° ≈ 90°) | Forța F₀ în fază cu Viteza v | Putere Maximă ⟨P⟩ = ${this.meanPower.toFixed(2)} W`;
       } else if (this.deltaDeg < 90) {
         color = '#00e5ff';
         bg = 'rgba(0, 229, 255, 0.08)';
-        text = `◄ REGIM CONTROLAT DE ELASTICITATE (ω < ω₀) | Defazaj δ = ${this.deltaDeg.toFixed(1)}° | kA > mω²A`;
+        text = isNarrow
+          ? `◄ REGIM ELASTIC | δ = ${this.deltaDeg.toFixed(0)}° (kA > mω²A)`
+          : `◄ REGIM CONTROLAT DE ELASTICITATE (ω < ω₀) | Defazaj δ = ${this.deltaDeg.toFixed(1)}° | kA > mω²A`;
       } else {
         color = '#b388ff';
         bg = 'rgba(179, 136, 255, 0.08)';
-        text = `► REGIM CONTROLAT DE INERȚIE (ω > ω₀) | Defazaj δ = ${this.deltaDeg.toFixed(1)}° | mω²A > kA`;
+        text = isNarrow
+          ? `► REGIM INERȚIAL | δ = ${this.deltaDeg.toFixed(0)}° (mω²A > kA)`
+          : `► REGIM CONTROLAT DE INERȚIE (ω > ω₀) | Defazaj δ = ${this.deltaDeg.toFixed(1)}° | mω²A > kA`;
       }
 
       ctx.fillStyle = bg;
@@ -320,7 +327,8 @@
       ctx.lineTo(W, h);
       ctx.stroke();
 
-      ctx.font = 'bold 11px Inter, sans-serif';
+      const fontSize = isNarrow ? 9 : (W < 750 ? 10 : 11);
+      ctx.font = `bold ${fontSize}px Inter, sans-serif`;
       ctx.fillStyle = color;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
@@ -337,15 +345,17 @@
       ctx.fill();
       ctx.stroke();
 
+      const isCompact = gw < 270;
+
       // Title
       ctx.fillStyle = '#9e9eb8';
-      ctx.font = 'bold 11px Inter, sans-serif';
+      ctx.font = 'bold 10px Inter, sans-serif';
       ctx.textAlign = 'left';
-      ctx.fillText('Diagrama Fazorială Fresnel & Triunghiul Forțelor', gx + 12, gy + 16);
+      ctx.fillText(isCompact ? 'Fazori & Triunghi Forțe' : 'Diagrama Fazorială Fresnel & Triunghiul Forțelor', gx + 10, gy + 14);
 
-      const cx = gx + gw * 0.42;
+      const cx = isCompact ? gx + gw * 0.36 : gx + gw * 0.42;
       const cy = gy + gh * 0.55;
-      const maxR = Math.min(gw * 0.34, gh * 0.36);
+      const maxR = Math.min(gw * (isCompact ? 0.28 : 0.34), gh * 0.36);
 
       // Coordinate axes & reference circles
       ctx.strokeStyle = 'rgba(255, 255, 255, 0.07)';
@@ -353,10 +363,10 @@
       ctx.beginPath();
       ctx.arc(cx, cy, maxR, 0, Math.PI * 2);
       ctx.arc(cx, cy, maxR * 0.6, 0, Math.PI * 2);
-      ctx.moveTo(cx - maxR - 12, cy);
-      ctx.lineTo(cx + maxR + 12, cy);
-      ctx.moveTo(cx, cy - maxR - 12);
-      ctx.lineTo(cx, cy + maxR + 12);
+      ctx.moveTo(cx - maxR - 8, cy);
+      ctx.lineTo(cx + maxR + 8, cy);
+      ctx.moveTo(cx, cy - maxR - 8);
+      ctx.lineTo(cx, cy + maxR + 8);
       ctx.stroke();
 
       // Current rotation angles (counter-clockwise in math, so -angle in canvas Y)
@@ -395,8 +405,7 @@
         const ry = cy + rReact * Math.sin(angX);
 
         ctx.save();
-        ctx.setLineDash([4, 3]);
-        // Reactive component along x
+        ctx.setLineDash([3, 2]);
         ctx.strokeStyle = '#ffab40aa';
         ctx.lineWidth = 1.8;
         ctx.beginPath();
@@ -404,7 +413,6 @@
         ctx.lineTo(rx, ry);
         ctx.stroke();
 
-        // Damping component perpendicular to x closing to F₀
         ctx.strokeStyle = '#ff4081aa';
         ctx.beginPath();
         ctx.moveTo(rx, ry);
@@ -417,41 +425,41 @@
       const arcR = maxR * 0.34;
       ctx.save();
       ctx.strokeStyle = '#ffab40';
-      ctx.lineWidth = 2;
+      ctx.lineWidth = 1.5;
       ctx.beginPath();
       ctx.arc(cx, cy, arcR, angF, angX, false);
       ctx.stroke();
 
       const midAng = angF + (this.delta * 0.5);
       ctx.fillStyle = '#ffab40';
-      ctx.font = 'bold 10px JetBrains Mono, monospace';
+      ctx.font = 'bold 9px JetBrains Mono, monospace';
       ctx.textAlign = 'center';
-      ctx.fillText(`δ=${this.deltaDeg.toFixed(0)}°`, cx + (arcR + 14) * Math.cos(midAng), cy + (arcR + 14) * Math.sin(midAng));
+      ctx.fillText(`δ=${this.deltaDeg.toFixed(0)}°`, cx + (arcR + 10) * Math.cos(midAng), cy + (arcR + 10) * Math.sin(midAng));
       ctx.restore();
 
       // Legend & Live Values Panel on the Right of Phasor Circle
-      const legX = gx + gw * 0.75;
-      let legY = gy + 38;
-      const lineH = 20;
+      const legX = isCompact ? gx + gw * 0.65 : gx + gw * 0.74;
+      let legY = gy + 32;
+      const lineH = isCompact ? 16 : 18;
 
-      ctx.font = '10px JetBrains Mono, monospace';
+      ctx.font = '8.5px JetBrains Mono, monospace';
       ctx.textAlign = 'left';
 
       const items = [
-        { color: '#69f0ae', label: 'F₀ (Forța)', val: `${this.F0.toFixed(1)} N` },
-        { color: '#00e5ff', label: 'x (Deplasare)', val: `A=${this.A.toFixed(2)}m` },
-        { color: '#ff4081', label: 'v (Viteză ⊥ x)', val: `${this.vMax.toFixed(2)}m/s` },
-        { color: '#ffab40', label: '(k-mω²)A', val: `${this.F_reactive.toFixed(2)} N` },
-        { color: '#b388ff', label: 'bωA (Frecare)', val: `${this.F_damping.toFixed(2)} N` }
+        { color: '#69f0ae', label: isCompact ? 'F₀' : 'F₀ (Forță)', val: `${this.F0.toFixed(1)}N` },
+        { color: '#00e5ff', label: isCompact ? 'x' : 'x (Deplasare)', val: `A=${this.A.toFixed(1)}m` },
+        { color: '#ff4081', label: isCompact ? 'v' : 'v (Viteză)', val: `${this.vMax.toFixed(1)}m/s` },
+        { color: '#ffab40', label: isCompact ? 'F_react' : '(k-mω²)A', val: `${this.F_reactive.toFixed(1)}N` },
+        { color: '#b388ff', label: isCompact ? 'F_frec' : 'bωA', val: `${this.F_damping.toFixed(1)}N` }
       ];
 
       for (const it of items) {
         ctx.fillStyle = it.color;
-        ctx.fillRect(legX - 10, legY - 7, 6, 6);
+        ctx.fillRect(legX - 8, legY - 6, 5, 5);
         ctx.fillText(it.label, legX, legY);
         ctx.fillStyle = '#e8eaf6';
-        ctx.fillText(it.val, legX, legY + 11);
-        legY += lineH + 10;
+        ctx.fillText(it.val, legX, legY + 9);
+        legY += lineH + 8;
       }
     }
 
@@ -463,10 +471,11 @@
       ctx.fill();
       ctx.stroke();
 
+      const wTitle = gw < 320 ? 'Putere P(t) = F(t)·v(t)' : (gw < 460 ? 'Puterea Instantanee P(t) = F(t)·v(t)' : 'Puterea Instantanee P(t) = F(t)·v(t) și Alinierea Fază-Viteză');
       ctx.fillStyle = '#9e9eb8';
       ctx.font = 'bold 10px Inter, sans-serif';
       ctx.textAlign = 'left';
-      ctx.fillText('Puterea Instantanee P(t) = F(t)·v(t) și Alinierea Fază-Viteză', gx + 12, gy + 15);
+      ctx.fillText(wTitle, gx + 12, gy + 15);
 
       const padL = 32;
       const padR = 14;
@@ -540,15 +549,27 @@
       ctx.stroke();
 
       // Legend at bottom
-      ctx.font = '9px JetBrains Mono, monospace';
-      ctx.fillStyle = '#69f0ae';
-      ctx.fillText('--- F(t) Forța', plotX, gy + gh - 8);
-      ctx.fillStyle = '#ff4081';
-      ctx.fillText('─── v(t) Viteza', plotX + 95, gy + gh - 8);
-      ctx.fillStyle = '#69f0ae';
-      ctx.fillText('■ P(t)>0 (Energie absorbită)', plotX + 195, gy + gh - 8);
-      ctx.fillStyle = '#ff5252';
-      ctx.fillText('■ P(t)<0 (Returnată)', plotX + 360, gy + gh - 8);
+      ctx.font = '8.5px JetBrains Mono, monospace';
+      if (gw < 360) {
+        ctx.fillStyle = '#69f0ae';
+        ctx.fillText('--- F(t)', plotX, gy + gh - 6);
+        ctx.fillStyle = '#ff4081';
+        ctx.fillText('─── v(t)', plotX + plotW * 0.28, gy + gh - 6);
+        ctx.fillStyle = '#69f0ae';
+        ctx.fillText('■ P>0', plotX + plotW * 0.54, gy + gh - 6);
+        ctx.fillStyle = '#ff5252';
+        ctx.fillText('■ P<0', plotX + plotW * 0.78, gy + gh - 6);
+      } else {
+        const seg = plotW / 4;
+        ctx.fillStyle = '#69f0ae';
+        ctx.fillText('--- F(t) Forța', plotX, gy + gh - 8);
+        ctx.fillStyle = '#ff4081';
+        ctx.fillText('─── v(t) Viteza', plotX + seg, gy + gh - 8);
+        ctx.fillStyle = '#69f0ae';
+        ctx.fillText('■ P(t)>0 (Absorbită)', plotX + seg * 2, gy + gh - 8);
+        ctx.fillStyle = '#ff5252';
+        ctx.fillText('■ P(t)<0 (Returnată)', plotX + seg * 3, gy + gh - 8);
+      }
     }
 
     _drawAmplitudePlot(ctx, gx, gy, gw, gh) {
@@ -568,15 +589,18 @@
       ctx.fill();
       ctx.stroke();
 
+      const aTitle = gw < 350 ? 'Curba A(ω) & ⟨P(ω)⟩' : 'Curba de Amplitudine A(ω) & Puterea Medie ⟨P(ω)⟩';
       ctx.fillStyle = '#9e9eb8';
       ctx.font = 'bold 11px Inter, sans-serif';
       ctx.textAlign = 'left';
-      ctx.fillText('Curba de Amplitudine A(ω) & Puterea Medie ⟨P(ω)⟩', gx + 12, gy + 15);
+      ctx.fillText(aTitle, gx + 12, gy + 15);
 
-      ctx.font = '8px Inter, sans-serif';
-      ctx.fillStyle = '#00e5ffaa';
-      ctx.textAlign = 'right';
-      ctx.fillText('⚡ Click / Trage pe grafic pentru a schimba ω', gx + gw - 10, gy + 15);
+      if (gw >= 420) {
+        ctx.font = '8px Inter, sans-serif';
+        ctx.fillStyle = '#00e5ffaa';
+        ctx.textAlign = 'right';
+        ctx.fillText('⚡ Click / Trage pe grafic pentru a schimba ω', gx + gw - 10, gy + 15);
+      }
 
       let maxA = 0;
       let maxP = 0;
@@ -698,10 +722,11 @@
       ctx.fill();
       ctx.stroke();
 
+      const pTitle = gw < 360 ? 'Curba de Fază δ(ω)' : (gw < 500 ? 'Curba de Fază δ(ω) (0° → 90° → 180°)' : 'Curba de Fază δ(ω) — Tranziția 0° → 90° (Rezonanță) → 180°');
       ctx.fillStyle = '#9e9eb8';
       ctx.font = 'bold 11px Inter, sans-serif';
       ctx.textAlign = 'left';
-      ctx.fillText('Curba de Fază δ(ω) — Tranziția 0° → 90° (Rezonanță) → 180°', gx + 12, gy + 15);
+      ctx.fillText(pTitle, gx + 12, gy + 15);
 
       const maxW = this.omega0 * 2.5;
 

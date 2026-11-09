@@ -55,7 +55,8 @@
   --font-sans: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
 
   /* Layout */
-  --topbar-height: 56px;
+  --topbar-height: 54px;
+  --mobile-tabs-height: 0px;
   --app-scale: 1;
   --theory-ratio: 0.44;
 
@@ -99,12 +100,64 @@ body {
     var(--bg-primary);
 }
 
+/* --- Mobile Tabs (comutator pentru ecrane mici) --- */
+.mobile-tabs {
+  display: none; /* Ascuns implicit pe desktop */
+  position: fixed;
+  top: var(--topbar-height);
+  left: 0;
+  right: 0;
+  height: var(--mobile-tabs-height);
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-color);
+  z-index: 999;
+  padding: 3px 10px;
+  gap: 8px;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.mobile-tab-btn {
+  flex: 1;
+  max-width: 200px;
+  height: calc(var(--mobile-tabs-height) - 8px);
+  border: 1px solid var(--border-color);
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  font-family: var(--font-sans);
+  font-size: 0.78rem;
+  font-weight: 600;
+  border-radius: var(--radius-sm);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  user-select: none;
+}
+
+.mobile-tab-btn:active {
+  transform: scale(0.96);
+}
+
+.mobile-tab-btn.active {
+  background: var(--accent-cyan-dim);
+  border-color: var(--accent-cyan);
+  color: var(--accent-cyan);
+  box-shadow: 0 0 10px var(--accent-cyan-glow);
+}
+
 /* --- Slide Wrapper --- */
 .slide-wrapper {
   flex: 1;
   position: relative;
   overflow: hidden;
-  margin-top: var(--topbar-height);
+  margin-top: calc(var(--topbar-height) + var(--mobile-tabs-height));
+  height: calc(100vh - var(--topbar-height) - var(--mobile-tabs-height));
+  height: calc(100dvh - var(--topbar-height) - var(--mobile-tabs-height));
 }
 
 /* --- Individual Slide --- */
@@ -210,36 +263,74 @@ body {
   font-size: 0.8rem;
 }
 
-/* --- Responsive Breakpoints --- */
+/* --- Responsive Breakpoints & Mobile Engine --- */
 @media (max-width: 1024px) {
   :root {
-    --theory-ratio: 0.42;
+    --theory-ratio: 0.40;
   }
 }
 
-@media (max-width: 900px) {
+/* Mobile & Small Screens (Portrait OR Landscape) */
+@media (max-width: 900px), (max-height: 550px) {
+  :root {
+    --topbar-height: 46px;
+    --mobile-tabs-height: 36px;
+  }
+
+  .mobile-tabs {
+    display: flex;
+  }
+
+  .slide__divider {
+    display: none !important;
+  }
+
   .slide {
     flex-direction: column !important;
   }
-  .slide__theory {
+
+  /* When Simulation Tab is Active (Default) */
+  #app-container.view-sim .slide__simulation {
+    display: flex !important;
     width: 100% !important;
-    height: 50% !important;
-    flex-shrink: 0;
+    height: 100% !important;
+    flex: 1 !important;
   }
-  .slide__simulation {
+
+  #app-container.view-sim .slide__theory {
+    display: none !important;
+  }
+
+  /* When Theory Tab is Active */
+  #app-container.view-theory .slide__theory {
+    display: flex !important;
     width: 100% !important;
-    height: 50% !important;
+    height: 100% !important;
+    flex: 1 !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch;
   }
-  .slide__divider {
-    display: none;
+
+  #app-container.view-theory .slide__simulation {
+    display: none !important;
+  }
+}
+
+/* Specific Phone Landscape Optimizations (Short viewports) */
+@media (max-height: 550px) {
+  :root {
+    --topbar-height: 38px;
+    --mobile-tabs-height: 28px;
+  }
+
+  .mobile-tab-btn {
+    font-size: 0.72rem;
+    height: 22px;
   }
 }
 
 @media (max-width: 600px) {
-  :root {
-    --topbar-height: 48px;
-  }
   html {
-    font-size: calc(14px * var(--app-scale));
+    font-size: calc(14.5px * var(--app-scale));
   }
 }

@@ -306,26 +306,121 @@
   line-height: 1.6;
 }
 
-/* --- Responsive --- */
-@media (max-width: 900px) {
+/* --- Responsive Controls & Layout --- */
+@media (max-width: 900px), (max-height: 550px) {
   .sim-controls {
-    padding: 8px 12px;
+    padding: 6px 10px;
+    gap: 5px;
+    background: var(--bg-secondary);
   }
+
+  /* Sliders: compact, wrap nicely */
+  .sim-controls__row {
+    gap: 8px;
+  }
+
   .sim-slider-group {
-    min-width: 110px;
+    min-width: 0;
+    flex: 1 1 110px;
+    gap: 4px;
+  }
+
+  .sim-slider-group__label {
+    font-size: 0.68rem;
+  }
+
+  .sim-slider-group input[type="range"] {
+    min-width: 36px;
+    height: 5px;
+  }
+
+  .sim-slider-group__value {
+    font-size: 0.68rem;
+    min-width: 38px;
+  }
+
+  /* Preset Pills: Horizontal scroll bar instead of multiple tall rows */
+  .sim-controls__row--presets {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    flex-wrap: nowrap !important;
+    overflow-x: auto;
+    white-space: nowrap;
+    -webkit-overflow-scrolling: touch;
+    padding: 3px 0 4px;
+    scrollbar-width: none;
+  }
+
+  .sim-controls__row--presets::-webkit-scrollbar {
+    display: none;
+  }
+
+  .sim-controls__tag {
+    flex-shrink: 0;
+    font-size: 0.64rem;
+  }
+
+  .sim-btn {
+    flex-shrink: 0;
+    padding: 4px 9px;
+    font-size: 0.72rem;
+    white-space: nowrap;
+  }
+
+  /* Action Buttons & Badges: One clean horizontal scroll row */
+  .sim-controls__actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    white-space: nowrap;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .sim-controls__actions::-webkit-scrollbar {
+    display: none;
+  }
+
+  .sim-controls__badges {
+    margin-left: 0;
+    flex-shrink: 0;
+    gap: 4px;
+  }
+
+  .sim-badge {
+    font-size: 0.68rem;
+    padding: 2px 6px;
+  }
+
+  .sim-controls__hint {
+    display: none; /* Ascundem hint-ul pe mobil pentru a câștiga spațiu valoros */
   }
 }
 
-@media (max-width: 600px) {
+/* Landscape on Phones: Ultra-compact controls to give canvas 70%+ of screen */
+@media (max-height: 550px) {
   .sim-controls {
-    padding: 6px 10px;
-    gap: 6px;
+    padding: 3px 8px;
+    gap: 3px;
   }
-  .sim-slider-group__label {
-    font-size: 0.65rem;
+
+  .sim-slider-group {
+    flex: 1 1 85px;
   }
+
+  .sim-slider-group input[type="range"] {
+    height: 4px;
+  }
+
   .sim-btn {
-    padding: 4px 10px;
-    font-size: 0.7rem;
+    padding: 2px 7px;
+    font-size: 0.68rem;
+  }
+
+  .sim-controls__row--presets {
+    padding: 1px 0 2px;
   }
 }

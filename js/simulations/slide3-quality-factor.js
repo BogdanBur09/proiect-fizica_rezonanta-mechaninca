@@ -387,17 +387,26 @@
     }
 
     _drawBanner(ctx, W) {
-      const h = 28;
+      const h = this.H < 280 ? 20 : 26;
       const r = this.omega / (this.omega0 + 1e-12);
       const isRes = Math.abs(r - 1.0) < 0.08;
       const q1 = this.oscillators[0].Q;
       const bw1 = this.omega0 / (q1 + 1e-12);
+      const isNarrow = W < 540;
 
       let color = isRes ? '#ff5252' : '#00e5ff';
       let bg = isRes ? 'rgba(255, 82, 82, 0.16)' : 'rgba(0, 229, 255, 0.08)';
-      let text = isRes
-        ? `⚡ REZONANȚĂ ACTIVĂ (ω ≈ ω₀) | Oscilatorul High-Q (Q₁=${q1.toFixed(1)}) amplifică de ${q1.toFixed(1)}× față de cel amortizat!`
-        : `🔬 COMPARATOR FACTOR Q | ω = ${this.omega.toFixed(2)} rad/s | Lățime Bandă High-Q: Δω₁ = ω₀/Q₁ = ${bw1.toFixed(2)} rad/s`;
+      let text;
+
+      if (isRes) {
+        text = isNarrow
+          ? `⚡ REZONANȚĂ! High-Q amplifică de ${q1.toFixed(0)}× față de Low-Q`
+          : `⚡ REZONANȚĂ ACTIVĂ (ω ≈ ω₀) | Oscilatorul High-Q (Q₁=${q1.toFixed(1)}) amplifică de ${q1.toFixed(1)}× față de cel amortizat!`;
+      } else {
+        text = isNarrow
+          ? `🔬 COMPARATOR Q | ω = ${this.omega.toFixed(1)} | Δω₁ = ${bw1.toFixed(1)} rad/s`
+          : `🔬 COMPARATOR FACTOR Q | ω = ${this.omega.toFixed(2)} rad/s | Lățime Bandă High-Q: Δω₁ = ω₀/Q₁ = ${bw1.toFixed(2)} rad/s`;
+      }
 
       ctx.fillStyle = bg;
       ctx.fillRect(0, 0, W, h);
@@ -407,7 +416,8 @@
       ctx.lineTo(W, h);
       ctx.stroke();
 
-      ctx.font = 'bold 11px Inter, sans-serif';
+      const fontSize = isNarrow ? 9 : (W < 750 ? 10 : 11);
+      ctx.font = `bold ${fontSize}px Inter, sans-serif`;
       ctx.fillStyle = color;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
@@ -415,15 +425,15 @@
     }
 
     _drawThreeOscillators(ctx, W, H) {
-      const scaleY = H * 0.14;
-      const shakerRestY = H * 0.15;
+      const scaleY = Math.min(H * 0.14, 45);
+      const shakerRestY = Math.min(H * 0.16, 52);
       const shakerY = shakerRestY + this.ys * scaleY;
       const restY = H * 0.56;
-      const colW = (W - 24) / 3;
+      const colW = (W - 14) / 3;
 
       // Common Shaker Beam at top
-      const beamLeft = 18;
-      const beamW = W - 36;
+      const beamLeft = 10;
+      const beamW = W - 20;
       const beamGrad = ctx.createLinearGradient(beamLeft, shakerY, beamLeft + beamW, shakerY + 10);
       beamGrad.addColorStop(0, '#253050');
       beamGrad.addColorStop(0.5, '#3d4f80');
@@ -433,70 +443,70 @@
       ctx.strokeStyle = '#00e5ff';
       ctx.lineWidth = 1.5;
       ctx.beginPath();
-      ctx.roundRect(beamLeft, shakerY, beamW, 12, 4);
+      ctx.roundRect(beamLeft, shakerY, beamW, 10, 4);
       ctx.fill();
       ctx.stroke();
 
       ctx.fillStyle = '#e8eaf6';
-      ctx.font = 'bold 9px JetBrains Mono, monospace';
+      ctx.font = 'bold 8.5px JetBrains Mono, monospace';
       ctx.textAlign = 'center';
-      ctx.fillText(`PLATFORMĂ COMUNĂ DE EXCITAȚIE: ω = ${this.omega.toFixed(2)} rad/s`, beamLeft + beamW / 2, shakerY - 6);
+      ctx.fillText(`EXCITAȚIE: ω = ${this.omega.toFixed(2)} rad/s`, beamLeft + beamW / 2, shakerY - 4);
 
       // Equilibrium Line
       ctx.save();
-      ctx.setLineDash([4, 4]);
+      ctx.setLineDash([3, 3]);
       ctx.strokeStyle = 'rgba(255, 255, 255, 0.14)';
       ctx.beginPath();
-      ctx.moveTo(14, restY);
-      ctx.lineTo(W - 14, restY);
+      ctx.moveTo(10, restY);
+      ctx.lineTo(W - 10, restY);
       ctx.stroke();
       ctx.restore();
 
       // Draw each of the 3 oscillators
       for (let i = 0; i < 3; i++) {
         const osc = this.oscillators[i];
-        const cx = 14 + colW * (i + 0.5);
-        const massY = Math.max(shakerY + 45, Math.min(H - 35, restY + osc.x * scaleY));
-        const massW = Math.min(colW * 0.78, 76);
-        const massH = 42;
+        const cx = 7 + colW * (i + 0.5);
+        const massY = Math.max(shakerY + 38, Math.min(H - 30, restY + osc.x * scaleY));
+        const massW = Math.min(colW * 0.82, 68);
+        const massH = Math.min(H * 0.15, 38);
 
         // Spring (left of column center)
-        this.drawSpring(cx - 14, shakerY + 12, massY - massH / 2, 10, 8, osc.color, 1.8);
+        this.drawSpring(cx - 10, shakerY + 10, massY - massH / 2, 8, 6, osc.color, 1.5);
 
-        // Damper (right of column center — wider for low Q to show heavy damping)
-        const damperW = i === 0 ? 10 : (i === 1 ? 15 : 22);
-        this.drawDamper(cx + 14, shakerY + 12, massY - massH / 2, damperW, '#9e9eb8');
+        // Damper (right of column center)
+        const damperW = i === 0 ? 8 : (i === 1 ? 12 : 18);
+        this.drawDamper(cx + 10, shakerY + 10, massY - massH / 2, damperW, '#9e9eb8');
 
         // Mass block
         ctx.save();
         if (Math.abs(osc.x) > 0.8) {
           ctx.shadowColor = osc.color;
-          ctx.shadowBlur = 16;
+          ctx.shadowBlur = 14;
         }
 
         ctx.fillStyle = '#151c32';
         ctx.strokeStyle = osc.color;
         ctx.lineWidth = 2;
         ctx.beginPath();
-        ctx.roundRect(cx - massW / 2, massY - massH / 2, massW, massH, 6);
+        ctx.roundRect(cx - massW / 2, massY - massH / 2, massW, massH, 5);
         ctx.fill();
         ctx.stroke();
         ctx.restore();
 
         // Mass text
         ctx.fillStyle = osc.color;
-        ctx.font = 'bold 11px JetBrains Mono, monospace';
+        ctx.font = 'bold 9.5px JetBrains Mono, monospace';
         ctx.textAlign = 'center';
-        ctx.fillText(`Q = ${osc.Q.toFixed(1)}`, cx, massY - 5);
+        ctx.fillText(`Q=${osc.Q.toFixed(1)}`, cx, massY - 4);
 
         ctx.fillStyle = '#e8eaf6';
-        ctx.font = '9px JetBrains Mono, monospace';
-        ctx.fillText(`x=${osc.x.toFixed(2)}m`, cx, massY + 10);
+        ctx.font = '8px JetBrains Mono, monospace';
+        ctx.fillText(`x=${osc.x.toFixed(2)}m`, cx, massY + 9);
 
         // Label at bottom of column
         ctx.fillStyle = osc.color;
-        ctx.font = 'bold 10px Inter, sans-serif';
-        ctx.fillText(osc.name, cx, H - 14);
+        ctx.font = 'bold 9px Inter, sans-serif';
+        ctx.fillText(W < 480 ? (i === 0 ? 'High-Q' : (i === 1 ? 'Med-Q' : 'Low-Q')) : osc.name, cx, H - 10);
       }
     }
 
@@ -517,10 +527,11 @@
       ctx.fill();
       ctx.stroke();
 
+      const gTitle = gw < 340 ? 'Curbe A(ω) & Δω (-3dB)' : (gw < 480 ? 'Curbele A(ω) & Lățimea Δω' : 'Curbele de Rezonanță A(ω) & Lățimea de Bandă Δω (-3 dB)');
       ctx.fillStyle = '#9e9eb8';
       ctx.font = 'bold 11px Inter, sans-serif';
       ctx.textAlign = 'left';
-      ctx.fillText('Curbele de Rezonanță A(ω) & Lățimea de Bandă Δω (-3 dB)', gx + 12, gy + 15);
+      ctx.fillText(gTitle, gx + 12, gy + 15);
 
       const maxW = this.omega0 * 2.4;
       let globalMaxA = Math.max(this.oscillators[0].maxA, this.oscillators[1].maxA, 1.0) * 1.1;
@@ -563,7 +574,10 @@
         ctx.fillStyle = '#00e5ff';
         ctx.font = 'bold 9px JetBrains Mono, monospace';
         ctx.textAlign = 'left';
-        ctx.fillText(`← Δω = ${osc0.bandwidth.toFixed(2)} rad/s (-3dB: Aₘₐₓ/√2) →`, x2 + 6, y3dB + 3);
+        const txt = gw < 360 ? `Δω=${osc0.bandwidth.toFixed(1)}` : `Δω = ${osc0.bandwidth.toFixed(2)} rad/s (-3dB)`;
+        const txtW = ctx.measureText(txt).width;
+        const textX = (x2 + 6 + txtW > plotX + plotW) ? Math.max(plotX + 6, x1 - txtW - 6) : x2 + 6;
+        ctx.fillText(txt, textX, y3dB - 4);
       }
 
       // Draw all 3 curves (reverse order so High-Q is on top)
@@ -631,15 +645,19 @@
       ctx.fill();
       ctx.stroke();
 
-      ctx.fillStyle = '#9e9eb8';
-      ctx.font = 'bold 11px Inter, sans-serif';
-      ctx.textAlign = 'left';
-      ctx.fillText('Energie Mecanică Stocată Instantanee & Parametri de Selectivitate', gx + 12, gy + 16);
+      const isCompact = gw < 280;
 
-      const startY = gy + 34;
-      const rowH = (gh - 42) / 3;
-      const barStartX = gx + 145;
-      const maxBarW = gw - 265;
+      ctx.fillStyle = '#9e9eb8';
+      ctx.font = 'bold 9.5px Inter, sans-serif';
+      ctx.textAlign = 'left';
+      ctx.fillText(isCompact ? 'Energie Stocată & Selectivitate' : 'Energie Stocată Instantanee & Selectivitate', gx + 10, gy + 14);
+
+      const startY = gy + 28;
+      const rowH = (gh - 34) / 3;
+      const labelW = Math.min(100, gw * 0.32);
+      const barStartX = gx + labelW + 8;
+      const statsW = Math.min(105, gw * 0.30);
+      const maxBarW = Math.max(30, gw - labelW - statsW - 24);
       const maxEnergy = Math.max(15, this.oscillators[0].energy * 1.1);
 
       for (let i = 0; i < 3; i++) {
@@ -648,27 +666,27 @@
 
         // Label
         ctx.fillStyle = osc.color;
-        ctx.font = 'bold 10px JetBrains Mono, monospace';
+        ctx.font = 'bold 9px JetBrains Mono, monospace';
         ctx.textAlign = 'left';
-        ctx.fillText(`${osc.name} (Q=${osc.Q.toFixed(1)})`, gx + 12, y + 12);
+        ctx.fillText(isCompact ? `Q=${osc.Q.toFixed(1)}` : `${osc.name}`, gx + 8, y + 10);
 
         // Bar track
         ctx.fillStyle = 'rgba(255, 255, 255, 0.05)';
         ctx.beginPath();
-        ctx.roundRect(barStartX, y + 2, maxBarW, 14, 4);
+        ctx.roundRect(barStartX, y + 1, maxBarW, 11, 3);
         ctx.fill();
 
         // Active Energy bar
-        const fillW = Math.min(maxBarW, Math.max(4, (osc.energy / maxEnergy) * maxBarW));
+        const fillW = Math.min(maxBarW, Math.max(3, (osc.energy / maxEnergy) * maxBarW));
         ctx.fillStyle = osc.color;
         ctx.beginPath();
-        ctx.roundRect(barStartX, y + 2, fillW, 14, 4);
+        ctx.roundRect(barStartX, y + 1, fillW, 11, 3);
         ctx.fill();
 
         // Stats on the right
         ctx.fillStyle = '#e8eaf6';
-        ctx.font = '9px JetBrains Mono, monospace';
-        ctx.fillText(`E=${osc.energy.toFixed(1)}J | Δω=${osc.bandwidth.toFixed(2)}`, barStartX + maxBarW + 8, y + 12);
+        ctx.font = '8px JetBrains Mono, monospace';
+        ctx.fillText(isCompact ? `${osc.energy.toFixed(1)}J` : `E=${osc.energy.toFixed(1)}J | Δω=${osc.bandwidth.toFixed(1)}`, barStartX + maxBarW + 6, y + 10);
       }
     }
   }
