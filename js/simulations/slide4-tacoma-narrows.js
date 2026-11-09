@@ -8,7 +8,7 @@
 (function () {
   'use strict';
 
-  class TacomaNarrowsSim extends BaseSimulation {
+  class TacomaNarrowsSim extends BaseSim {
     constructor(canvasId, config) {
       super(canvasId, config);
 
@@ -186,7 +186,7 @@
       const playBtn = document.getElementById('sim4-play');
       if (playBtn) {
         playBtn.addEventListener('click', () => {
-          if (this.isRunning) {
+          if (this.running) {
             this.stop();
             playBtn.textContent = '▶ Pornire';
           } else {
