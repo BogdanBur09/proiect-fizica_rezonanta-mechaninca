@@ -163,6 +163,8 @@
           simHTML = this._buildSlide2SimPanel(data);
         } else if (data.simType === 'quality-factor') {
           simHTML = this._buildSlide3SimPanel(data);
+        } else if (data.simType === 'tacoma-narrows') {
+          simHTML = this._buildSlide4SimPanel(data);
         } else {
           simHTML = this._buildPlaceholderSimPanel(data);
         }
@@ -335,6 +337,62 @@
       `;
     },
 
+    _buildSlide4SimPanel(data) {
+      const cfg = data.simConfig;
+      const kmh = (cfg.windSpeed * 3.6).toFixed(0);
+      return `
+        <div class="slide__simulation">
+          <div class="sim-canvas-wrap">
+            <canvas class="sim-canvas" id="sim-canvas-4"></canvas>
+          </div>
+          <div class="sim-controls">
+            <!-- Row 1: Sliders -->
+            <div class="sim-controls__row">
+              <div class="sim-slider-group">
+                <span class="sim-slider-group__label">v (vânt)</span>
+                <input type="range" id="sim4-wind" min="0" max="35" step="0.5" value="${cfg.windSpeed}">
+                <span class="sim-slider-group__value" id="sim4-wind-val">${cfg.windSpeed.toFixed(1)} m/s (${kmh} km/h)</span>
+              </div>
+              <div class="sim-slider-group">
+                <span class="sim-slider-group__label">k_θ (rigiditate)</span>
+                <input type="range" id="sim4-k" min="0.4" max="3.5" step="0.1" value="${cfg.kTheta}">
+                <span class="sim-slider-group__value" id="sim4-k-val">k_θ = ${cfg.kTheta.toFixed(1)}×</span>
+              </div>
+              <div class="sim-slider-group">
+                <span class="sim-slider-group__label">c_θ (amortizare)</span>
+                <input type="range" id="sim4-c" min="0.01" max="0.25" step="0.01" value="${cfg.cTheta}">
+                <span class="sim-slider-group__value" id="sim4-c-val">c_θ = ${cfg.cTheta.toFixed(2)}</span>
+              </div>
+            </div>
+
+            <!-- Row 2: Profile Selection & Presets -->
+            <div class="sim-controls__row sim-controls__row--presets">
+              <span class="sim-controls__tag">Profil Tablier:</span>
+              <button class="sim-btn sim-btn--primary" id="sim4-profile-h" title="Grindă plină H (Tacoma 1940) - generează flutter violent">⚠️ Grindă H (Tacoma 1940)</button>
+              <button class="sim-btn" id="sim4-profile-truss" title="Grindă cu zăbrele deschisă (Tacoma 1950) - aerul trece liber">🛡️ Zăbrele (Tacoma 1950)</button>
+              <button class="sim-btn" id="sim4-profile-aero" title="Profil casetat aerodinamic modern (aripă)">✈️ Casetă Aerodinamică</button>
+              <button class="sim-btn sim-btn--preset" id="sim4-preset-collapse" title="Recreează condițiile din 7 Noiembrie 1940">🌪️ Ziua Colapsului (1940)</button>
+              <button class="sim-btn" id="sim4-preset-truss" title="Modernizarea din 1950 la aceeași viteză a vântului">🛡️ Test cu Zăbrele</button>
+            </div>
+
+            <!-- Row 3: Action Buttons & Live Indicators -->
+            <div class="sim-controls__actions">
+              <button class="sim-btn sim-btn--primary" id="sim4-play">⏸ Pauză</button>
+              <button class="sim-btn sim-btn--danger" id="sim4-reset">↺ Reset</button>
+              <button class="sim-btn" id="sim4-snap-cable" title="Simulează ruperea cablului central de amarare">✂️ Rupe Cablu Centru</button>
+
+              <div class="sim-controls__badges">
+                <span class="sim-badge sim-badge--danger" id="sim4-damp-badge">c_eff = -0.18 (Negativă ⚠️)</span>
+                <span class="sim-badge sim-badge--amber" id="sim4-mode-badge">⚡ FLUTTER DIVERGENT</span>
+              </div>
+
+              <span class="sim-controls__hint">💡 Poți trage tablierul cu mouse-ul/touch pentru a induce o răsucire manuală!</span>
+            </div>
+          </div>
+        </div>
+      `;
+    },
+
     _buildPlaceholderSimPanel(data) {
       const cfg = data.simConfig || {};
       return `
@@ -419,6 +477,8 @@
         sim = new PhaseResponseSim(canvasId, data.simConfig);
       } else if (data.simType === 'quality-factor') {
         sim = new QualityFactorSim(canvasId, data.simConfig);
+      } else if (data.simType === 'tacoma-narrows') {
+        sim = new TacomaNarrowsSim(canvasId, data.simConfig);
       } else {
         sim = new PlaceholderSim(canvasId, data.simConfig || {});
       }

@@ -202,6 +202,19 @@
   background: var(--accent-cyan-dim);
 }
 
+.sim-badge--green {
+  color: var(--accent-green);
+  border-color: rgba(105, 240, 174, 0.3);
+  background: var(--accent-green-dim);
+}
+
+.sim-badge--danger {
+  color: var(--accent-red);
+  border-color: rgba(255, 82, 82, 0.35);
+  background: var(--accent-red-dim);
+  box-shadow: 0 0 10px rgba(255, 82, 82, 0.2);
+}
+
 .sim-controls__hint {
   font-size: 0.72rem;
   color: var(--accent-cyan);

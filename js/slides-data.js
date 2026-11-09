@@ -239,25 +239,82 @@
     // ===================== SLIDE 4 =====================
     {
       id: 4,
-      title: 'Podul Tacoma Narrows (1940)',
+      title: 'Consecință Catastrofală: Podul Tacoma Narrows (1940)',
       category: 'pericol',
-      simType: 'placeholder',
+      simType: 'tacoma-narrows',
       theoryHTML: `
-        <div class="theory-placeholder">
-          <div class="theory-placeholder__icon">🌉</div>
-          <div class="theory-placeholder__text">
-            <strong>Slide în pregătire</strong><br>
-            Cazul emblematic al rezonanței distructive: prăbușirea podului Tacoma Narrows.
+        <div class="theory-section">
+          <h3>1. Evenimentul Istoric și Mitul Rezonanței</h3>
+          <p>Pe 7 noiembrie 1940, la doar 4 luni de la inaugurare, podul suspendat Tacoma Narrows
+          (statul Washington, SUA — pe atunci al treilea cel mai lung din lume) s-a prăbușit
+          spectaculos sub acțiunea unui vânt moderat de doar \\(68\\text{ km/h}\\) (\\(19\\text{ m/s}\\), forța 8 Beaufort).</p>
+          <p><em>Mitul manualelor vechi:</em> Multe manuale au prezentat colapsul ca pe o „rezonanță forțată mecanică pură”
+          generată de desprinderea ritmică a vârtejurilor de aer. <strong>Analiza modernă (Billah & Scanlan, 1991)</strong>
+          a demonstrat că fenomenul real a fost mult mai periculos: <strong>fluture aeroelastic torsional (torsional flutter)</strong>
+          cu <strong>auto-excitație și amortizare negativă</strong>.</p>
+        </div>
+
+        <div class="theory-section">
+          <h3>2. Desprinderea de Vârtejuri Kármán (Vortex Shedding)</h3>
+          <p>La trecerea fluidului (aerul) pe lângă un corp bont (grinzile pline de oțel în formă de „H” ale tablierului),
+          se formează o dâră alternantă de vârtejuri periodice cu frecvența Strouhal:</p>
+          <div class="equation-card">
+            <div class="equation-card__label">Frecvența de Desprindere Strouhal</div>
+            $$f_s = \\frac{\\text{St} \\cdot v}{D}$$
           </div>
-          <ul class="theory-placeholder__topics">
-            <li>Rezonanța aeroelastică și desprinderea vârtejurilor Kármán</li>
-            <li>Frecvența vântului coincisă cu modul de torsiune</li>
-            <li>Tranziția de la oscilație verticală la mod torsional divergent</li>
-            <li>Lecții de inginerie extrase din acest dezastru</li>
+          <p>unde:
+            <br>• \\(\\text{St} \\approx 0{,}13\\) — numărul adimensional Strouhal pentru profilul H
+            <br>• \\(v = 19\\text{ m/s}\\) — viteza vântului
+            <br>• \\(D = 2{,}4\\text{ m}\\) — înălțimea grinzii de oțel a tablierului
+          </p>
+          <p>La această viteză, \\(f_s \\approx 1{,}0\\text{ Hz}\\), mult mai mare decât frecvența de torsiune la care s-a rupt structura (\\(f_{\\text{tors}} \\approx 0{,}20\\text{ Hz}\\)). Vârtejurile Kármán au inițiat mișcarea verticală, dar distrugerea finală a fost cauzată de cuplajul torsional aeroelastic!</p>
+        </div>
+
+        <div class="theory-section">
+          <h3>3. Fluturele Aeroelastic (Torsional Flutter) și Amortizarea Negativă</h3>
+          <p>Când tablierul începe să se răsucească cu unghiul \\(\\theta(t)\\), profilul nesimetric în curentul de aer
+          generează un cuplu aerodinamic forțat \\(M_{\\text{aero}}\\):</p>
+          <div class="equation-card">
+            <div class="equation-card__label">Ecuația Mișcării de Torsiune</div>
+            $$I \\ddot{\\theta} + c_\\theta \\dot{\\theta} + k_\\theta \\theta = M_{\\text{aero}}(\\theta, \\dot{\\theta}, v)$$
+          </div>
+          <p>Prin derivatele aeroelastice Scanlan, cuplul aerodinamic conține un termen proporțional cu viteza unghiulară \\(\\dot{\\theta}\\):</p>
+          <div class="equation-card">
+            <div class="equation-card__label">Amortizarea Efectivă a Sistemului</div>
+            $$c_{\\text{eff}}(v) = c_\\theta - \\frac{1}{2} \\rho v B^3 A_1^*$$
+          </div>
+          <p>unde \\(B = 11{,}9\\text{ m}\\) este lățimea tablierului, iar \\(A_1^*\\) este coeficientul aeroelastic de flutter.
+          Pentru secțiunea în formă de „H” masiv a podului Tacoma, \\(A_1^* > 0\\) (forța acționează <em>în fază cu viteza</em>).</p>
+        </div>
+
+        <div class="theory-section">
+          <h3>4. Instabilitatea Divergentă (Auto-Excitație)</h3>
+          <p>Când viteza vântului depășește viteza critică (\\(v > v_{\\text{crit}} \\approx 16\\text{ m/s}\\)):</p>
+          <div class="equation-card">
+            <div class="equation-card__label">Condiția de Flutter Divergent</div>
+            $$c_{\\text{eff}} < 0 \\quad \\Longrightarrow \\quad \\theta(t) = \\theta_0 \\, e^{\\gamma_{\\text{net}} t} \\cos(\\omega_{\\text{tors}} t - \\phi) \\quad (\\gamma_{\\text{net}} > 0)$$
+          </div>
+          <p>Sistemul extrage mai multă energie mecanică din vânt în fiecare semielipsă decât poate disipa prin frecare structurală internă. Amplitudinea unghiulară \\(\\theta(t)\\) crește exponențial (a atins peste \\(\\pm 35^\\circ\\)) până când cablurile verticale și niturile de oțel cedează ireversibil!</p>
+        </div>
+
+        <div class="theory-section">
+          <h3>5. Lecția Inginerească: Tacoma 1950 și Podurile Moderne</h3>
+          <ul class="theory-points">
+            <li><strong>Podul Nou (1950):</strong> Reconstruit cu <em>grinzi cu zăbrele deschise (deep stiffening truss)</em> de 10 m înălțime. Vântul trece nestingherit prin structură, anulând portanța asimetrică (\\(A_1^* \\le 0\\)).</li>
+            <li><strong>Podurile Moderne (ex. Akashi Kaikyo, Storebælt):</strong> Folosesc <em>tabliere casetate aerodinamice (aerofoil box girder)</em> profilate ca aripa de avion, asigurând stabilitate la vânturi de peste 250 km/h.</li>
           </ul>
         </div>
+
+        <div class="theory-callout">
+          <strong>Experiment în Simulare:</strong> Comută profilul pe <em>„Grindă Plină H (Tacoma 1940)"</em> la \\(v = 19\\text{ m/s}\\) pentru a asista la divergența torsională și ruperea cablului. Apoi comută pe <em>„Grindă cu Zăbrele (1950)"</em> pentru a vedea cum aceeași viteză a vântului devine complet inofensivă!
+        </div>
       `,
-      simConfig: { placeholderIcon: '🌉', placeholderTitle: 'Simulator Torsiune Pod', placeholderDesc: 'Flux de vânt reglabil cu demonstrarea tranziției distructive de la oscilație stabilă la colaps torsional.' }
+      simConfig: {
+        windSpeed: 19.0,
+        kTheta: 1.0,
+        cTheta: 0.03,
+        deckType: 'h-girder'
+      }
     },
 
     // ===================== SLIDE 5 =====================
