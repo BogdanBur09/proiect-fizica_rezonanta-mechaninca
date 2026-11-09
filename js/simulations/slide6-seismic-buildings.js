@@ -407,11 +407,12 @@
       const ctx = this.ctx;
       const W = this.W;
       const H = this.H;
+      if (W < 40 || H < 40) return;
 
       ctx.clearRect(0, 0, W, H);
 
-      const topH = Math.round(H * 0.58);
-      const botH = H - topH;
+      const topH = Math.max(80, Math.round(H * 0.58));
+      const botH = Math.max(60, H - topH);
 
       this._renderShakeTableAndBuildings(ctx, 0, 0, W, topH);
       this._renderTelemetryPanels(ctx, 0, topH, W, botH);
@@ -444,13 +445,13 @@
 
       // 2. Geological Subsurface & Shake Table Geometry
       const tableY = y0 + h - 38;
-      const tableW = Math.min(w - 90, 680);
-      const tableXBase = x0 + (w - tableW) * 0.5 + 16;
+      const tableW = Math.max(140, Math.min(w - 60, 680));
+      const tableXBase = x0 + Math.max(10, (w - tableW) * 0.5 + 16);
       const tableX = tableXBase + this.xg;
 
       // Subsurface soil strata with propagating S-wave ripples
       ctx.fillStyle = '#090f1d';
-      ctx.fillRect(x0, tableY + 14, w, h - (tableY - y0) - 14);
+      ctx.fillRect(x0, tableY + 14, w, Math.max(10, h - (tableY - y0) - 14));
 
       // Propagating seismic wave rings in ground
       ctx.save();
@@ -510,16 +511,16 @@
       );
 
       // 3. Render the 3 Buildings on the Shake Table
-      const maxAvailH = tableY - (y0 + 44);
+      const maxAvailH = Math.max(60, tableY - (y0 + 44));
       const heights = [
-        Math.round(maxAvailH * 0.26), // 3 floors
-        Math.round(maxAvailH * 0.56), // 10 floors
-        Math.round(maxAvailH * 0.94)  // 20 floors
+        Math.max(25, Math.round(maxAvailH * 0.26)), // 3 floors
+        Math.max(50, Math.round(maxAvailH * 0.56)), // 10 floors
+        Math.max(75, Math.round(maxAvailH * 0.94))  // 20 floors
       ];
       const widths = [
-        Math.min(68, tableW * 0.14),
-        Math.min(72, tableW * 0.15),
-        Math.min(76, tableW * 0.16)
+        Math.max(30, Math.min(68, tableW * 0.14)),
+        Math.max(34, Math.min(72, tableW * 0.15)),
+        Math.max(38, Math.min(76, tableW * 0.16))
       ];
       const xPositions = [
         tableX + tableW * 0.19,
@@ -736,8 +737,8 @@
 
       const plotX = cardX + 34;
       const plotY = cardY + 24;
-      const plotW = cardW - 46;
-      const plotH = cardH - 44;
+      const plotW = Math.max(50, cardW - 46);
+      const plotH = Math.max(30, cardH - 44);
 
       this.spectrumRect = { x: plotX, y: plotY, w: plotW, h: plotH };
 
@@ -830,8 +831,8 @@
       ctx.fillText('DRIFT INTER-ETAJ & DEPLASARE VÂRF |u(t)|', cardX + 10, cardY + 15);
 
       const barStartX = cardX + 115;
-      const barMaxW = Math.max(60, cardW - 175);
-      const rowH = Math.min(26, (cardH - 32) / 3);
+      const barMaxW = Math.max(40, cardW - 175);
+      const rowH = Math.max(14, Math.min(26, (cardH - 32) / 3));
 
       for (let i = 0; i < 3; i++) {
         const b = this.buildings[i];

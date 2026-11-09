@@ -95,8 +95,31 @@
         }
       });
 
-      // Show first slide
-      this.goTo(0);
+      // Show initial slide from hash or 0
+      let initialSlide = 0;
+      if (window.location.hash) {
+        const match = window.location.hash.match(/\d+/);
+        if (match) {
+          const num = parseInt(match[0], 10);
+          if (num >= 1 && num <= this.totalSlides) {
+            initialSlide = num - 1;
+          }
+        }
+      }
+      this.goTo(initialSlide);
+
+      // Listen for hash changes
+      window.addEventListener('hashchange', () => {
+        if (window.location.hash) {
+          const match = window.location.hash.match(/\d+/);
+          if (match) {
+            const num = parseInt(match[0], 10);
+            if (num >= 1 && num <= this.totalSlides && num - 1 !== this.currentSlide) {
+              this.goTo(num - 1);
+            }
+          }
+        }
+      });
 
       // Render KaTeX in all slides
       this._renderMath();
@@ -556,8 +579,24 @@
       this._prevBtn.disabled = (index === 0);
       this._nextBtn.disabled = (index === this.totalSlides - 1);
 
+      // Keep URL hash in sync for direct linking and refresh persistence
+      try {
+        if (window.location.hash !== '#' + (index + 1)) {
+          history.replaceState(null, '', '#' + (index + 1));
+        }
+      } catch (e) {}
+
       // Init or resume simulation for this slide
       this._ensureSimulation(index);
+
+      // Ensure canvas has correct dimensions after layout reflow
+      setTimeout(() => {
+        const currentSim = this.simulations[this.currentSlide];
+        if (currentSim) {
+          currentSim.resize();
+          currentSim.render();
+        }
+      }, 50);
 
       // Re-render math for this slide if needed
       this._renderMathForSlide(index);
