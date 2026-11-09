@@ -165,6 +165,8 @@
           simHTML = this._buildSlide3SimPanel(data);
         } else if (data.simType === 'tacoma-narrows') {
           simHTML = this._buildSlide4SimPanel(data);
+        } else if (data.simType === 'millennium-bridge') {
+          simHTML = this._buildSlide5SimPanel(data);
         } else {
           simHTML = this._buildPlaceholderSimPanel(data);
         }
@@ -393,6 +395,64 @@
       `;
     },
 
+    _buildSlide5SimPanel(data) {
+      const cfg = data.simConfig || {};
+      const N = cfg.N || 180;
+      const f0 = (cfg.f0 || 0.90).toFixed(2);
+      return `
+        <div class="slide__simulation">
+          <div class="sim-canvas-wrap">
+            <canvas class="sim-canvas" id="sim-canvas-5"></canvas>
+          </div>
+          <div class="sim-controls">
+            <!-- Row 1: Sliders -->
+            <div class="sim-controls__row">
+              <div class="sim-slider-group">
+                <span class="sim-slider-group__label">N (Pietoni)</span>
+                <input type="range" id="sim5-pedestrians" min="10" max="380" step="5" value="${N}">
+                <span class="sim-slider-group__value" id="sim5-pedestrians-val">${N} pietoni</span>
+              </div>
+              <div class="sim-slider-group">
+                <span class="sim-slider-group__label">f₀ (frecvență laterală)</span>
+                <input type="range" id="sim5-f0" min="0.6" max="1.4" step="0.02" value="${f0}">
+                <span class="sim-slider-group__value" id="sim5-f0-val">${f0} Hz</span>
+              </div>
+              <div class="sim-slider-group">
+                <span class="sim-slider-group__label">ζ (amortizare pod)</span>
+                <input type="range" id="sim5-zeta" min="0.2" max="25" step="0.2" value="0.5">
+                <span class="sim-slider-group__value" id="sim5-zeta-val">0.5% (fără amortizoare)</span>
+              </div>
+            </div>
+
+            <!-- Row 2: Presets & Historical Scenarios -->
+            <div class="sim-controls__row sim-controls__row--presets">
+              <span class="sim-controls__tag">Scenarii:</span>
+              <button class="sim-btn" id="sim5-preset-sub" title="50 pietoni (sub pragul critic Ncrit ≈ 160) — mers stabil">🚶 Mulțime Rară (N = 50 &lt; N_crit)</button>
+              <button class="sim-btn sim-btn--danger" id="sim5-preset-2000" title="Deschiderea 10 Iunie 2000 (250 pietoni, ζ = 0.5%) — balans violent!">⚠️ Deschiderea 2000 (N = 250 &gt; N_crit)</button>
+              <button class="sim-btn sim-btn--preset" id="sim5-preset-damper" title="Soluția inginerească 2002: 37 amortizoare cu fluid vâscos">🛡️ Soluția 2002: Amortizoare Vâscoase</button>
+              <button class="sim-btn" id="sim5-preset-sync" title="Forțează toți pietonii în pas de marș sincron">⚡ Marș Sincron Forțat</button>
+              <button class="sim-btn" id="sim5-preset-scatter" title="Reîmprăștie fazele la întâmplare">🎲 Mers Haotic</button>
+            </div>
+
+            <!-- Row 3: Action Buttons & Live Indicators -->
+            <div class="sim-controls__actions">
+              <button class="sim-btn sim-btn--primary" id="sim5-play">⏸ Pauză</button>
+              <button class="sim-btn sim-btn--danger" id="sim5-reset">↺ Reset</button>
+              <button class="sim-btn" id="sim5-damper-btn">⚙️ Activează Amortizoare (2002)</button>
+
+              <div class="sim-controls__badges">
+                <span class="sim-badge sim-badge--danger" id="sim5-n-badge">Pietoni: ${N} / Ncrit ≈ 160</span>
+                <span class="sim-badge sim-badge--amber" id="sim5-amp-badge">Balans: 0 mm</span>
+                <span class="sim-badge sim-badge--cyan" id="sim5-r-badge">Sincronizare R: 0%</span>
+              </div>
+
+              <span class="sim-controls__hint">💡 Trage de tablierul podului cu mouse-ul sau mărește numărul de oameni peste 160!</span>
+            </div>
+          </div>
+        </div>
+      `;
+    },
+
     _buildPlaceholderSimPanel(data) {
       const cfg = data.simConfig || {};
       return `
@@ -479,6 +539,8 @@
         sim = new QualityFactorSim(canvasId, data.simConfig);
       } else if (data.simType === 'tacoma-narrows') {
         sim = new TacomaNarrowsSim(canvasId, data.simConfig);
+      } else if (data.simType === 'millennium-bridge') {
+        sim = new MillenniumBridgeSim(canvasId, data.simConfig);
       } else {
         sim = new PlaceholderSim(canvasId, data.simConfig || {});
       }

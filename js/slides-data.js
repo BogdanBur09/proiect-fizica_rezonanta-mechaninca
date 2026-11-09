@@ -299,25 +299,74 @@
     // ===================== SLIDE 5 =====================
     {
       id: 5,
-      title: 'Pasarela Millennium, Londra (2000)',
+      title: 'Consecință: Pasarela Millennium din Londra (2000)',
       category: 'pericol',
-      simType: 'placeholder',
+      simType: 'millennium-bridge',
       theoryHTML: `
-        <div class="theory-placeholder">
-          <div class="theory-placeholder__icon">🚶</div>
-          <div class="theory-placeholder__text">
-            <strong>Slide în pregătire</strong><br>
-            Sincronizarea laterală pietonală și rezonanța feedback-ului pozitiv.
+        <div class="theory-section">
+          <h3>1. Evenimentul din 10 Iunie 2000: „The Wobbly Bridge”</h3>
+          <p>Pe 10 iunie 2000, cu ocazia noului mileniu, la Londra s-a inaugurat <strong>Pasarela Millennium</strong> peste râul Tamisa — un pod suspendat pietonal extrem de suplu și modern, cu cabluri laterale tensionate (deschidere totală de \\(320\\text{ m}\\)).</p>
+          <p>În primele 48 de ore, podul a fost traversat de circa <strong>90.000 de oameni</strong>, ajungând la densități de până la 2.000 de persoane simultan pe tablier. Imediat, puntea a început să se <strong>balanseze lateral violent</strong>, cu amplitudini de până la \\(\\pm 70\\text{ mm}\\) – \\(100\\text{ mm}\\) la frecvența de \\(\\approx 0{,}8 - 1{,}0\\text{ Hz}\\). Oamenii se dezechilibrau, mergeau legănat ca pinguinii și se agățau disperați de balustrade. Podul a fost închis de urgență după doar 2 zile!</p>
+        </div>
+
+        <div class="theory-section">
+          <h3>2. Demontarea Mitului: De ce NU a fost Marș Militar?</h3>
+          <p>De la prăbușirea podului suspendat Broughton (1831), regulamentele militare impun trupelor să <em>rupă pasul de marș</em> la traversarea oricărui pod. Pe Pasarela Millennium însă, pietonii au urcat complet dezorganizați, pășind la întâmplare și cu faze aleatorii.</p>
+          <p>Analizele conduse de fizicianul Steven Strogatz (Universitatea Cornell) și echipa de ingineri de la Arup (publicate în revista <em>Nature</em>, 2005) au dovedit că fenomenul a fost o <strong>tranziție spontană de sincronizare (Synchronous Lateral Excitation)</strong> cu feedback biomecanic pozitiv.</p>
+        </div>
+
+        <div class="theory-section">
+          <h3>3. Mecanismul Biomecanic: Forța Laterală a Pasului Uman</h3>
+          <p>În timpul mersului obișnuit, o persoană face pași înainte la o frecvență verticală de \\(f_{\\text{vert}} \\approx 2{,}0\\text{ Hz}\\) (doi pași pe secundă). Însă, pentru a înainta, corpul uman își transferă alternativ centrul de greutate de pe piciorul stâng pe cel drept. Fiecare pas generează o <strong>forță reactivă orizontală laterală</strong> cu frecvența egală cu exact <em>jumătatea frecvenței verticale</em>:</p>
+          <div class="equation-card">
+            <div class="equation-card__label">Frecvența și Forța Laterală a Mersului Uman</div>
+            $$f_{\\text{lateral}} = \\frac{1}{2} f_{\\text{vertical}} \\approx 0{,}8 - 1{,}0\\text{ Hz}, \\qquad F_{\\text{lat}} \\approx (0{,}04 - 0{,}05) \\cdot G_{\\text{corp}} \\approx 25 - 35\\text{ N}$$
           </div>
-          <ul class="theory-placeholder__topics">
-            <li>Synchronous Lateral Excitation (SLE)</li>
-            <li>Pasul pietonilor (~1 Hz) vs frecvența proprie laterală</li>
-            <li>Feedback pozitiv: pietoni adaptează mersul la balansul podului</li>
-            <li>Soluția inginerească: amortizoare vâscoase adăugate</li>
+          <p>Deschiderea sudică și cea centrală ale pasarelei aveau frecvențe proprii laterale de flexiune de \\(f_0 \\approx 0{,}77\\text{ Hz}\\) și \\(f_0 \\approx 1{,}03\\text{ Hz}\\) — suprapuse perfect peste ritmul lateral al pasului uman — având o amortizare internă extrem de slabă (\\(\\zeta \\approx 0{,}5\\%\\), \\(Q \\approx 100\\)).</p>
+        </div>
+
+        <div class="theory-section">
+          <h3>4. Bucla de Reacție Pozitivă și Modelul Kuramoto</h3>
+          <p>Sincronizarea s-a produs printr-o reacție în lanț auto-amplificată:</p>
+          <ul class="theory-points">
+            <li><strong>Balansul incipient:</strong> Chiar și din pași aleatorii, coincidența statistică creează o mișcare laterală microscopică a punții (\\(Y \\sim 2-5\\text{ mm}\\)).</li>
+            <li><strong>Instinctul de echilibru (Waddling Gait):</strong> Când podeaua fuge de sub picioare, pietonul își depărtează instinctiv tălpile și își adaptează pasul pentru a călca <em>în aceeași direcție în care se mișcă podul</em>.</li>
+            <li><strong>Cuplajul coerent:</strong> Pășind în faza mișcării, pietonii nu mai anulează reciproc forțele, ci împing simultan în puntea podului!</li>
+            <li><strong>Ecuația Kuramoto de Fază:</strong> Faza fiecărui pieton \\(\\theta_i(t)\\) este atrasă de faza mișcării podului \\(\\Phi_{\\text{pod}}\\):
+              $$\\frac{d\\theta_i}{dt} = \\Omega_i + K \\cdot \\min\\left(1, \\frac{|\\dot{Y}|}{v_0}\\right) \\sin(\\Phi_{\\text{pod}} - \\theta_i)$$
+            </li>
           </ul>
         </div>
+
+        <div class="theory-section">
+          <h3>5. Pragul Critic de Pietoni (\\(N_{\\text{crit}}\\))</h3>
+          <p>Bilanțul energetic dintre energia injectată de mulțime și disiparea structurală arată că fenomenul apare doar dacă numărul de pietoni \\(N\\) depășește un <strong>prag critic strict</strong>:</p>
+          <div class="equation-card">
+            <div class="equation-card__label">Pragul Critic Strogatz-Arup</div>
+            $$N_{\\text{crit}} = \\frac{8 \\zeta M \\omega_0}{\\pi k_{\\text{walk}}} \\approx 160 \\text{ pietoni}$$
+          </div>
+          <p>Sub \\(N_{\\text{crit}}\\), mișcarea rămâne stabilă și insesizabilă. Când densitatea mulțimii a depășit 160 de persoane pe deschiderea sudică, podul a trecut printr-o <em>tranziție de fază colectivă</em> spre oscilație divergentă!</p>
+        </div>
+
+        <div class="theory-section">
+          <h3>6. Soluția Inginerească: Amortizoare Vâscoase (2001–2002)</h3>
+          <p>În loc să demoleze sau să rigidizeze inestetic structura suplă, consorțiul Arup a instalat dedesubtul tablierului:</p>
+          <ul class="theory-points">
+            <li><strong>37 de amortizoare cu fluid vâscos (Viscous Dampers):</strong> pistoane hidraulice montate pe console chevron care disipă energia cinetică laterală prin frecarea uleiului sintetic sub presiune;</li>
+            <li><strong>52 de amortizoare acordate de masă (TMD-uri):</strong> contragreutăți oscilante pe arcuri.</li>
+          </ul>
+          <p>Amortizarea efectivă \\(\\zeta\\) a crescut de la \\(0{,}5\\%\\) la peste <strong>\\(20 - 22\\%\\)</strong>, mărind \\(N_{\\text{crit}}\\) la peste 2.500 de persoane. Pasarela s-a redeschis în februarie 2002 și rămâne perfect stabilă până în prezent.</p>
+        </div>
+
+        <div class="theory-callout">
+          <strong>Experiment în Simulare:</strong> Crește numărul de pietoni de la 50 la 250 pentru a depăși pragul critic \\(N_{\\text{crit}} \\approx 160\\) și urmărește cum parametrul de ordine Kuramoto \\(R\\) crește spre 80-90%! Apoi apasă butonul <em>„🛡️ Soluția 2002: Amortizoare Vâscoase”</em> pentru a vedea cum balansul se stinge instantaneu.
+        </div>
       `,
-      simConfig: { placeholderIcon: '🚶', placeholderTitle: 'Simulator Pietoni pe Pod Suspendat', placeholderDesc: 'Număr reglabil de pietoni care își sincronizează pasul, generând creșterea exponențială a oscilației laterale.' }
+      simConfig: {
+        f0: 0.90,
+        N: 180,
+        couplingK: 2.2
+      }
     },
 
     // ===================== SLIDE 6 =====================
