@@ -192,6 +192,8 @@
           simHTML = this._buildSlide5SimPanel(data);
         } else if (data.simType === 'seismic-buildings') {
           simHTML = this._buildSlide6SimPanel(data);
+        } else if (data.simType === 'rotating-machinery') {
+          simHTML = this._buildSlide7SimPanel(data);
         } else {
           simHTML = this._buildPlaceholderSimPanel(data);
         }
@@ -535,6 +537,64 @@
       `;
     },
 
+    _buildSlide7SimPanel(data) {
+      const cfg = data.simConfig || {};
+      const rpm = cfg.rpm || 3000;
+      const ecc = (cfg.eccentricity || 0.40).toFixed(2);
+      const zeta = ((cfg.zeta || 0.04) * 100).toFixed(1);
+      return `
+        <div class="slide__simulation">
+          <div class="sim-canvas-wrap">
+            <canvas class="sim-canvas" id="sim-canvas-7"></canvas>
+          </div>
+          <div class="sim-controls">
+            <!-- Row 1: Sliders -->
+            <div class="sim-controls__row">
+              <div class="sim-slider-group">
+                <span class="sim-slider-group__label">n (turație RPM)</span>
+                <input type="range" id="sim7-rpm" min="300" max="7200" step="50" value="${rpm}">
+                <span class="sim-slider-group__value" id="sim7-rpm-val">${rpm} RPM (ω/ω₀ = 1.00)</span>
+              </div>
+              <div class="sim-slider-group">
+                <span class="sim-slider-group__label">e (excentricitate)</span>
+                <input type="range" id="sim7-ecc" min="0.05" max="2.00" step="0.05" value="${ecc}">
+                <span class="sim-slider-group__value" id="sim7-ecc-val">e = ${ecc} mm</span>
+              </div>
+              <div class="sim-slider-group">
+                <span class="sim-slider-group__label">ζ (amortizare lagăr)</span>
+                <input type="range" id="sim7-zeta" min="1.0" max="25.0" step="0.5" value="${zeta}">
+                <span class="sim-slider-group__value" id="sim7-zeta-val">ζ = ${zeta}% (Lagăr standard)</span>
+              </div>
+            </div>
+
+            <!-- Row 2: Presets & Scenarios -->
+            <div class="sim-controls__row sim-controls__row--presets">
+              <span class="sim-controls__tag">Regimuri & Teste:</span>
+              <button class="sim-btn" id="sim7-preset-sub" title="Turație joasă: forță centrifugă spre exterior, masă în fază (δ ≈ 0°)">◄ Sub-critic (1200 RPM)</button>
+              <button class="sim-btn sim-btn--danger" id="sim7-preset-crit" title="Turația critică de rezonanță n_cr = 3000 RPM (defazaj 90°, solicitare extremă în rulmenți)">⚡ Turație Critică (3000 RPM)</button>
+              <button class="sim-btn sim-btn--preset" id="sim7-preset-super" title="Regim super-critic Laval: inversare de fază δ -> 180°, centrul de masă G se auto-centrează pe ax!">► Auto-centrare (6000 RPM — Laval)</button>
+              <button class="sim-btn" id="sim7-preset-balance" title="Adaugă contragreutate pe rotor pentru a anula dezechilibrul (e -> 0)">⚖️ Echilibrare Dinamică</button>
+              <button class="sim-btn" id="sim7-preset-sweep" title="Mătură automat turația între 600 și 6800 RPM (test run-up / coast-down)">🌊 Baleiaj Turație (Run-up)</button>
+            </div>
+
+            <!-- Row 3: Action Buttons & Live Indicators -->
+            <div class="sim-controls__actions">
+              <button class="sim-btn sim-btn--primary" id="sim7-play">⏸ Pauză</button>
+              <button class="sim-btn sim-btn--danger" id="sim7-reset">↺ Reset</button>
+
+              <div class="sim-controls__badges">
+                <span class="sim-badge sim-badge--danger" id="sim7-rpm-badge">3000 RPM (1.00× n_cr)</span>
+                <span class="sim-badge sim-badge--amber" id="sim7-r-badge">Vibrație r: 5.00 mm</span>
+                <span class="sim-badge sim-badge--cyan" id="sim7-phase-badge">Defazaj δ: 90°</span>
+              </div>
+
+              <span class="sim-controls__hint">💡 Click pe diagrama Bode pentru a seta turația direct!</span>
+            </div>
+          </div>
+        </div>
+      `;
+    },
+
     _buildPlaceholderSimPanel(data) {
       const cfg = data.simConfig || {};
       return `
@@ -641,6 +701,8 @@
         sim = new MillenniumBridgeSim(canvasId, data.simConfig);
       } else if (data.simType === 'seismic-buildings') {
         sim = new SeismicBuildingsSim(canvasId, data.simConfig);
+      } else if (data.simType === 'rotating-machinery') {
+        sim = new RotatingMachinerySim(canvasId, data.simConfig);
       } else {
         sim = new PlaceholderSim(canvasId, data.simConfig || {});
       }

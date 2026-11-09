@@ -434,25 +434,74 @@
     // ===================== SLIDE 7 =====================
     {
       id: 7,
-      title: 'Vibrații în Arbori și Mașini Rotative',
+      title: 'Consecință Industrială: Vibrații în Arbori și Mașini Rotative',
       category: 'pericol',
-      simType: 'placeholder',
+      simType: 'rotating-machinery',
       theoryHTML: `
-        <div class="theory-placeholder">
-          <div class="theory-placeholder__icon">⚙️</div>
-          <div class="theory-placeholder__text">
-            <strong>Slide în pregătire</strong><br>
-            Viteze critice de rotație și rezonanța arborilor dezechilibrați.
+        <div class="theory-section">
+          <h3>1. Dezechilibrul Rezidual de Masă (Unbalance)</h3>
+          <p>În orice utilaj rotativ industrial (turbine cu abur și gaze, compresoare centrifugale, motoare electrice de mare putere, arbori cardanici), oricât de precisă ar fi prelucrarea mecanică, <strong>centrul real de masă \\(G\\)</strong> al rotorului nu coincide perfect cu <strong>centrul geometric al secțiunii \\(C\\)</strong>. Această asimetrie microscopică reprezintă <em>excentricitatea \\(e\\)</em>.</p>
+          <p>La viteza unghiulară de rotație \\(\\omega\\), rotația masei excentrice generează o forță perturbatoare centrifugă care crește proporțional cu <strong>pătratul vitezei de rotație (\\(\\omega^2\\))</strong>:</p>
+          <div class="equation-card">
+            <div class="equation-card__label">Forța Centrifugă de Dezechilibru</div>
+            $$F_{\\text{cf}} = m e \\omega^2$$
           </div>
-          <ul class="theory-placeholder__topics">
-            <li>Rotorul Laval / Jeffcott și dezechilibrul de masă</li>
-            <li>Viteze critice de rotație: \\(n_{cr} = \\frac{30}{\\pi}\\omega_0\\) RPM</li>
-            <li>Forțele centrifuge de rezonanță și oboseala materialelor</li>
-            <li>Echilibrarea dinamică ca soluție industrială</li>
+        </div>
+
+        <div class="theory-section">
+          <h3>2. Modelul Rotorului Jeffcott / Laval (1919)</h3>
+          <p>Modelul matematic de referință (propus de H. H. Jeffcott în 1919 pe baza descoperirilor lui Carl Gustaf de Laval din 1889) descrie un arbore elastic suplu de rigiditate \\(k\\) sprijinit în două lagăre, purtând la mijloc un disc masiv de masă \\(m\\):</p>
+          <div class="equation-card">
+            <div class="equation-card__label">Ecuația Diferențială a Deformării Laterale (Whirl)</div>
+            $$m\\ddot{x} + c\\dot{x} + kx = me\\omega^2 \\cos(\\omega t), \\qquad m\\ddot{y} + c\\dot{y} + ky = me\\omega^2 \\sin(\\omega t)$$
+          </div>
+          <p>Amplitudinea deplasării radiale \\(r(\\omega)\\) și unghiul de defazaj \\(\\delta(\\omega)\\) dintre vectorul excentricității \\(\\vec{CG}\\) și vectorul deflexiunii \\(\\vec{OC}\\) au soluțiile analitice:</p>
+          <div class="equation-card">
+            <div class="equation-card__label">Amplitudinea de Încovoiere și Defazajul Rotorului</div>
+            $$r(\\omega) = \\frac{e \\left(\\frac{\\omega}{\\omega_0}\\right)^2}{\\sqrt{\\left[1 - \\left(\\frac{\\omega}{\\omega_0}\\right)^2\\right]^2 + \\left(2\\zeta \\frac{\\omega}{\\omega_0}\\right)^2}}, \\qquad \\tan\\delta = \\frac{2\\zeta \\left(\\frac{\\omega}{\\omega_0}\\right)}{1 - \\left(\\frac{\\omega}{\\omega_0}\\right)^2}$$
+          </div>
+        </div>
+
+        <div class="theory-section">
+          <h3>3. Turația Critică de Rezonanță (\\(n_{\\text{cr}}\\) RPM)</h3>
+          <p>Turația la care viteza de rotație coincide cu frecvența proprie laterală de încovoiere a arborelui poartă numele de <strong>turație critică</strong>:</p>
+          <div class="equation-card">
+            <div class="equation-card__label">Calculul Turației Critice Fundamentale</div>
+            $$\\omega_{\\text{cr}} = \\omega_0 = \\sqrt{\\frac{k}{m}} \\quad \\Longleftrightarrow \\quad n_{\\text{cr}} = \\frac{30}{\\pi} \\sqrt{\\frac{k}{m}} \\; [\\text{RPM}]$$
+          </div>
+          <p>La această turație (\\(\\omega = \\omega_0\\)), defazajul devine exact \\(\\delta = 90^\\circ\\), iar amplitudinea de flexiune atinge vârful periculos \\(r_{\\max} = Q \\cdot e = \\frac{e}{2\\zeta}\\). Pentru un oțel cu amortizare redusă (\\(\\zeta = 2\\%\\)), deflexiunea arborelui este de <strong>25 de ori mai mare</strong> decât excentricitatea inițială!</p>
+        </div>
+
+        <div class="theory-section">
+          <h3>4. Descoperirea Epocală a lui Laval: Fenomenul de Auto-centrare (Self-Centering)</h3>
+          <p>În 1889, inginerul suedez Gustaf de Laval a demonstrat un principiu contra-intuitiv care a deschis era turbinelor moderne:</p>
+          <ul class="theory-points">
+            <li><strong>Sub-critic (\\(\\omega \\ll \\omega_{\\text{cr}}\\)):</strong> \\(\\delta \\approx 0^\\circ\\), punctul greu \\(G\\) fuge spre exterior, mărind raza de rotație.</li>
+            <li><strong>La rezonanță (\\(\\omega = \\omega_{\\text{cr}}\\)):</strong> \\(\\delta = 90^\\circ\\), vibrațiile și forțele dinamice în lagăre ating maximul.</li>
+            <li><strong>Super-critic (\\(\\omega \\gg \\omega_{\\text{cr}}\\)):</strong> Are loc o <em>inversare completă de fază</em>: \\(\\delta \\to 180^\\circ\\)! Punctul greu \\(G\\) se rotește spre interiorul curburii arborelui. Vectorul \\(\\vec{OG} \\to 0\\) — <strong>centrul de masă al rotorului se așază EXACT pe axa teoretică a lagărelor</strong>, iar vibrația transmisă în fundație tinde la zero!</li>
           </ul>
         </div>
+
+        <div class="theory-section">
+          <h3>5. Soluții Inginerești în Industria Energetică și Aeronautică</h3>
+          <ul class="theory-points">
+            <li><strong>Echilibrarea Dinamică:</strong> Măsurarea fazei vibrațiilor cu senzori piezoelectrice și montarea de contragreutăți de compensare pe rotor.</li>
+            <li><strong>Trecerea Rapidă prin Turația Critică (Run-up / Coast-down):</strong> Motoarele cu reacție accelerează rapid prin zona critică pentru a preveni acumularea de energie rezonantă.</li>
+            <li><strong>Lagăre cu Amortizor cu Film de Ulei (Squeeze Film Dampers):** Inserarea unui inel de ulei sintetic sub presiune în carcasele rulmenților pentru a mări \\(\\zeta\\) de la \\(2\\%\\) la peste \\(15\\%\\), aplatizând vârful de rezonanță.</li>
+          </ul>
+        </div>
+
+        <div class="theory-callout">
+          <strong>Experiment în Simulare:</strong> Pornește de la 1200 RPM (sub-critic), apoi setează <strong>3000 RPM (Turație Critică)</strong> pentru a observa amplificarea masivă a flexiunii și forțele extreme în rulmenți. Urcă apoi la <strong>6000 RPM (Super-critic)</strong> pentru a vedea cum centrul de masă \\(G\\) se auto-centrează exact pe axul lagărelor, iar rotația devine perfect stabilă!
+        </div>
       `,
-      simConfig: { placeholderIcon: '⚙️', placeholderTitle: 'Rotor Rotativ cu Masă Excentrică', placeholderDesc: 'Creșterea turației RPM cu vizualizarea amplitudinii vibrației la trecerea prin viteza critică.' }
+      simConfig: {
+        m: 2.5,
+        f0: 50.0,
+        rpm: 3000,
+        eccentricity: 0.40,
+        zeta: 0.04
+      }
     },
 
     // ===================== SLIDE 8 =====================
