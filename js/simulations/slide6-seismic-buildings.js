@@ -457,10 +457,13 @@
       ctx.save();
       ctx.strokeStyle = 'rgba(239, 68, 68, 0.22)';
       ctx.lineWidth = 1.5;
+      const safeTime = Math.max(0, this.time || 0);
       for (let r = 0; r < 4; r++) {
-        const wavePhase = ((this.time * this.fSeism * 80) + r * 45) % 180;
+        const rawPhase = ((safeTime * this.fSeism * 80) + r * 45) % 180;
+        const wavePhase = Math.abs(rawPhase);
+        const ringRadius = Math.max(0.5, wavePhase * 2.2);
         ctx.beginPath();
-        ctx.arc(x0 + w * 0.5, tableY + 35, wavePhase * 2.2, Math.PI, 2 * Math.PI);
+        ctx.arc(x0 + w * 0.5, tableY + 35, ringRadius, Math.PI, 2 * Math.PI);
         ctx.stroke();
       }
       ctx.restore();

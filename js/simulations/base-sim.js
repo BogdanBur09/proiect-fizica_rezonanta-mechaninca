@@ -111,6 +111,7 @@
       let dt = (timestamp - this._lastTimestamp) / 1000;
       this._lastTimestamp = timestamp;
       if (dt > 0.05) dt = 0.05;
+      if (dt < 0 || isNaN(dt)) dt = 0;
 
       // Apply sim speed setting
       if (window.SettingsManager) {
