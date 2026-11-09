@@ -635,12 +635,12 @@
 
             <!-- Row 2: Scenario Presets & Beam Controls -->
             <div class="sim-controls__presets">
-              <span class="sim-presets-title">Scenarii & Cuplaj:</span>
-              <button class="sim-btn sim-btn--preset" id="sim8-preset-random">🎲 Pornire Aleatorie (Huygens 1665)</button>
-              <button class="sim-btn" id="sim8-preset-inphase">🔗 Pornire în Fază (Δφ = 0°)</button>
-              <button class="sim-btn" id="sim8-preset-antiphase">⚖️ Antifază Perfectă (Δφ = 180°)</button>
-              <button class="sim-btn" id="sim8-btn-perturb">⚡ Perturbă Pendulul 2 (Șoc)</button>
-              <button class="sim-btn sim-btn--preset" id="sim8-btn-lock-beam">🔓 Grindă Mobilă pe Role (Cuplaj Activ)</button>
+              <span class="sim-presets-title">Scenarii & Bistabilitate:</span>
+              <button class="sim-btn sim-btn--preset" id="sim8-preset-random" title="Faze inițiale aleatorii: pendulele converg automat spre starea cea mai apropiată (0° sau 180°)">🎲 Pornire Aleatorie (Bistabilitate)</button>
+              <button class="sim-btn" id="sim8-preset-inphase" title="Inițializare în bazinul de atracție al modului sincron în fază (0°)">🔗 Pornire spre În Fază (0°)</button>
+              <button class="sim-btn" id="sim8-preset-antiphase" title="Inițializare în bazinul de atracție al modului în antifază (180°)">⚖️ Pornire spre Antifază (180°)</button>
+              <button class="sim-btn" id="sim8-btn-perturb" title="Modifică brusc faza pendulului 2 pentru a testa re-sincronizarea sau tranziția între stări">⚡ Perturbă Pendulul 2 (Șoc)</button>
+              <button class="sim-btn sim-btn--preset" id="sim8-btn-lock-beam" title="Blochează sau eliberează grinda de lemn comună pe role">🔓 Grindă Mobilă pe Role (Cuplaj Activ)</button>
             </div>
 
             <!-- Row 3: Action Buttons & Live Indicators -->

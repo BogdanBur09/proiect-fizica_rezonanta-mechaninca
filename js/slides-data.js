@@ -537,22 +537,25 @@
           Raportul adimensional de cuplaj este \\(\\mu = \\frac{m}{M}\\): cuplajul are loc exclusiv prin <strong>micro-accelerațiile \\(\\ddot{X}\\) ale grinzii comune</strong>! Dacă grinda este blocată rigid (\\(X \\equiv 0\\)), pendulele sunt decuplate și nu se pot sincroniza.
         </p>
 
-        <h3>3. De ce Câștigă Modul în Antifază (\\(\\Delta\\varphi = 180^\\circ\\))?</h3>
+        <h3>3. Bistabilitate Reală: Sincronizare în Antifază (180°) sau în Fază (0°)</h3>
         <p>
-          Introducând coordonatele modale — suma \\(s(t) = \\theta_1 + \\theta_2\\) (<strong>modul în fază</strong>) și diferența \\(d(t) = \\theta_1 - \\theta_2\\) (<strong>modul în antifază</strong>) — observăm comportamente complet opuse:
+          Cercetările moderne de dinamică neliniară asupra pendulelor lui Huygens (Bennett et al., 2002; Kapitaniak et al., 2012) au demonstrat că sistemul real prezintă <strong>bistabilitate</strong> — existența a doi atractori stabili simultani, starea finală depinzând de condițiile inițiale (bazinul de atracție în care este pornit sistemul):
         </p>
         <ul>
           <li>
-            <strong>Modul în Fază (\\(\\theta_1 = +\\theta_2,\\; \\Delta\\varphi = 0^\\circ\\)):</strong> Ambele pendule împing grinda în aceeași direcție simultan (\\(F_{\\text{net}} \\propto \\theta_1 + \\theta_2 = 2\\theta_1\\)). Grinda oscilează puternic, iar frecarea suportului \\(C_b \\dot{X}\\) <em>extrage și disipă rapid energia</em> acestui mod!
+            <strong>Sincronizare în Fază (\\(\\theta_1 \\approx +\\theta_2,\\; \\Delta\\varphi \\to 0^\\circ\\)):</strong> Dacă pendulele sunt pornite sau perturbate astfel încât diferența inițială de fază este mai mică de \\(90^\\circ\\), pendulele se blochează pas la pas, oscilând în aceeași direcție. În acest regim, forțele orizontale se însumează (\\(F_{\\text{net}} = F_1 + F_2\\)), iar grinda suport oscilează vizibil cu amplitudine maximă.
           </li>
           <li>
-            <strong>Modul în Antifază (\\(\\theta_1 = -\\theta_2,\\; \\Delta\\varphi = 180^\\circ\\)):</strong> Forțele orizontale exercitate în pivoți sunt egale și de sens opus:
+            <strong>Sincronizare în Antifază (\\(\\theta_1 \\approx -\\theta_2,\\; \\Delta\\varphi \\to 180^\\circ\\)):</strong> Dacă diferența inițială de fază depășește \\(90^\\circ\\) (mai aproape de antifază), forțele exercitate pe grindă se anulează reciproc:
             \\[
-            F_{\\text{net}} = F_1 + F_2 \\propto \\sin\\theta_1 + \\sin(-\\theta_1) = 0 \\implies X(t) \\to 0
+            F_{\\text{net}} = F_1 + F_2 \\approx \\sin\\theta_1 + \\sin(-\\theta_1) = 0 \\implies X(t) \\to 0
             \\]
-            Grinda rămâne în repaus, deci modul în antifază <strong>nu pierde energie prin frecarea suportului</strong>, devenind singurul atractor stabil al sistemului!
+            Pendulele oscilează în oglindă, iar grinda rămâne perfect calmă.
           </li>
         </ul>
+        <p>
+          La o pornire cu faze complet aleatorii, sistemul va alege natural starea cea mai apropiată!
+        </p>
 
         <h3>4. Limba lui Arnold și Condiția de Sincronizare</h3>
         <p>

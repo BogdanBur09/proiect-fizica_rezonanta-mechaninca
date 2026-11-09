@@ -139,23 +139,31 @@
       this.beamV = 0.0;
 
       if (mode === 'random') {
-        // Classic 1665 arbitrary phase difference (~75 deg)
-        this.theta1 = this.thetaTarget;
-        this.w1 = 0.0;
-        this.theta2 = 0.11;
-        this.w2 = this.thetaTarget * this.omega0 * 0.96;
+        // TRULY RANDOM initial phases:
+        // Uniformly distributed, so ~50% of the time it falls into the in-phase basin (|Δφ| < 90°)
+        // and ~50% of the time into the anti-phase basin (|Δφ| > 90°), as in real pendulums!
+        const phi1 = Math.random() * 2 * Math.PI;
+        const phi2 = Math.random() * 2 * Math.PI;
+        this.theta1 = this.thetaTarget * Math.cos(phi1);
+        this.w1 = -this.thetaTarget * this.omega0 * Math.sin(phi1);
+        this.theta2 = this.thetaTarget * Math.cos(phi2);
+        this.w2 = -this.thetaTarget * this.omega0 * Math.sin(phi2);
       } else if (mode === 'inphase') {
-        // Start nearly in-phase (with a tiny 4-deg asymmetry so the unstable in-phase mode can transition to anti-phase)
-        this.theta1 = this.thetaTarget;
-        this.w1 = 0.0;
-        this.theta2 = this.thetaTarget * 0.97;
-        this.w2 = 0.12 * this.omega0;
+        // Start in the basin of attraction of in-phase (e.g. within 20 deg of 0°)
+        const phi1 = Math.random() * 2 * Math.PI;
+        const phi2 = phi1 + (Math.random() - 0.5) * 0.5;
+        this.theta1 = this.thetaTarget * Math.cos(phi1);
+        this.w1 = -this.thetaTarget * this.omega0 * Math.sin(phi1);
+        this.theta2 = this.thetaTarget * Math.cos(phi2);
+        this.w2 = -this.thetaTarget * this.omega0 * Math.sin(phi2);
       } else if (mode === 'antiphase') {
-        // Exact 180-deg mirror symmetry (Huygens steady state)
-        this.theta1 = this.thetaTarget;
-        this.w1 = 0.0;
-        this.theta2 = -this.thetaTarget;
-        this.w2 = 0.0;
+        // Start in the basin of attraction of anti-phase (e.g. within 20 deg of 180°)
+        const phi1 = Math.random() * 2 * Math.PI;
+        const phi2 = phi1 + Math.PI + (Math.random() - 0.5) * 0.5;
+        this.theta1 = this.thetaTarget * Math.cos(phi1);
+        this.w1 = -this.thetaTarget * this.omega0 * Math.sin(phi1);
+        this.theta2 = this.thetaTarget * Math.cos(phi2);
+        this.w2 = -this.thetaTarget * this.omega0 * Math.sin(phi2);
       }
 
       this._computePhaseDifference();
@@ -165,9 +173,10 @@
     }
 
     perturbPendulum2() {
-      // Give pendulum 2 an abrupt phase/angle kick
-      this.theta2 = 0.52;
-      this.w2 = 1.4;
+      // Give pendulum 2 a new random phase offset (may flip the system between in-phase and anti-phase)
+      const newPhi2 = Math.random() * 2 * Math.PI;
+      this.theta2 = this.thetaTarget * Math.cos(newPhi2);
+      this.w2 = -this.thetaTarget * this.omega0 * Math.sin(newPhi2);
       this.tickFlash2 = 1.0;
       this._computePhaseDifference();
       this._updateUIBadges();
@@ -396,11 +405,21 @@
 
         const xAcc = (-cb * v - (wBeam * wBeam) * x + mu * (pForce1 + pForce2)) / effMass;
 
-        // Direct dissipative coupling through beam velocity (accelerates convergence to 180° within ~10-15s of visual watch time)
-        const syncDamp = mu * this.beamDamping * 1.35 * (w1 * c1 + w2 * c2);
+        // Bistable phase synchronization torque between the two pendulums:
+        // Real coupled pendulums on a movable support possess co-existing attractors (bistability):
+        // 1. In-phase mode (Δφ -> 0°) when starting closer to 0° (|Δφ| < 90°)
+        // 2. Anti-phase mode (Δφ -> 180°) when starting closer to 180° (|Δφ| > 90°)
+        const phi1 = Math.atan2(-w1 / w0_1, th1);
+        const phi2 = Math.atan2(-w2 / w0_2, th2);
+        let dPhi = phi1 - phi2;
+        while (dPhi > Math.PI) dPhi -= 2 * Math.PI;
+        while (dPhi < -Math.PI) dPhi += 2 * Math.PI;
 
-        const a1 = this.draggingBob === 1 ? 0 : (grav1 - xAcc * c1 - syncDamp * c1);
-        const a2 = this.draggingBob === 2 ? 0 : (grav2 - xAcc * c2 - syncDamp * c2);
+        const syncStrength = mu * 2.8 * (w0_1 * w0_1);
+        const bistableSync = syncStrength * Math.sin(2 * dPhi);
+
+        const a1 = this.draggingBob === 1 ? 0 : (grav1 - xAcc * c1 + bistableSync * Math.cos(phi1));
+        const a2 = this.draggingBob === 2 ? 0 : (grav2 - xAcc * c2 - bistableSync * Math.cos(phi2));
 
         return [
           this.draggingBob === 1 ? 0 : w1,
@@ -480,14 +499,14 @@
         if (this.beamLocked) {
           stateBadge.textContent = '🔒 Fără Cuplaj (Independente)';
           stateBadge.className = 'sim-badge sim-badge--danger';
-        } else if (deg >= 168) {
+        } else if (deg >= 165) {
           stateBadge.textContent = '✨ Sincronizat în Antifază (180°)';
           stateBadge.className = 'sim-badge sim-badge--cyan';
-        } else if (deg <= 12) {
-          stateBadge.textContent = '🔗 În Fază (0° — Instabil)';
-          stateBadge.className = 'sim-badge sim-badge--amber';
+        } else if (deg <= 15) {
+          stateBadge.textContent = '✨ Sincronizat în Fază (0°)';
+          stateBadge.className = 'sim-badge sim-badge--cyan';
         } else {
-          stateBadge.textContent = '🔄 Tranziție / Transfer Impuls';
+          stateBadge.textContent = deg < 90 ? '🔄 Atracție spre În Fază (0°)' : '🔄 Atracție spre Antifază (180°)';
           stateBadge.className = 'sim-badge sim-badge--amber';
         }
       }
@@ -545,26 +564,27 @@
         color = '#ff5252';
         bgCol = 'rgba(255, 82, 82, 0.20)';
         text = isNarrow
-          ? '🔒 GRINDĂ BLOCATĂ RIGID (X = 0): Pendulele nu pot comunica mecanic — sincronizarea este imposibilă!'
-          : '🔒 GRINDĂ BLOCATĂ RIGID (X = 0): Fără micro-mișcarea suportului comun, pendulele oscilează independent și nu se pot sincroniza!';
-      } else if (deg >= 168) {
+          ? '🔒 GRINDĂ BLOCATĂ (X = 0): Pendulele oscilează independent (fără sincronizare)!'
+          : '🔒 GRINDĂ BLOCATĂ RIGID (X = 0): Fără micro-mișcarea suportului comun, pendulele oscilează independent!';
+      } else if (deg >= 165) {
         color = '#00e5ff';
         bgCol = 'rgba(0, 229, 255, 0.14)';
         text = isNarrow
-          ? `✨ SINCRONIZARE ÎN ANTIFAZĂ (Δφ = ${deg}°): Forțele se anulează pe grindă (F₁ + F₂ = 0)!`
-          : `✨ „SIMPATIA CEASURILOR” A LUI HUYGENS (1665): Sincronizare stabilă în antifază (Δφ = ${deg}°) — Forțele orizontale se anulează (F₁ + F₂ ≈ 0)!`;
+          ? `✨ SINCRONIZAT ÎN ANTIFAZĂ (Δφ = ${deg}°): Forțele se anulează pe grindă (F₁ + F₂ ≈ 0)!`
+          : `✨ SINCRONIZAT ÎN ANTIFAZĂ (Δφ = ${deg}° — Huygens 1665): Forțele orizontale se anulează (F₁ + F₂ ≈ 0, grinda este calmă)!`;
       } else if (deg <= 15) {
-        color = '#fbbf24';
-        bgCol = 'rgba(251, 191, 36, 0.16)';
-        text = isNarrow
-          ? `🔗 OSCILAȚIE ÎN FAZĂ (Δφ = ${deg}°): Forțele se adună și mișcă grinda — energie disipată!`
-          : `🔗 MOD ÎN FAZĂ (Δφ = ${deg}°): Ambele pendule împing grinda în același sens — frecarea suportului amortizează acest mod!`;
-      } else {
         color = '#38bdf8';
-        bgCol = 'rgba(56, 189, 248, 0.14)';
+        bgCol = 'rgba(56, 189, 248, 0.16)';
         text = isNarrow
-          ? `🔄 ÎN CURS DE SINCRONIZARE (Δφ = ${deg}°) — Trage de oricare pendul cu mouse-ul!`
-          : `🔄 TRANSFER DE IMPULS PRIN GRINDA COMUNĂ (Δφ = ${deg}° -> 180°) — Poți trage cu mouse-ul de oricare pendul!`;
+          ? `✨ SINCRONIZAT ÎN FAZĂ (Δφ = ${deg}°): Pendulele bat pas la pas în aceeași direcție!`
+          : `✨ SINCRONIZAT ÎN FAZĂ (Δφ = ${deg}°): Pendulele bat pas la pas în aceeași direcție (forțele se adună, grinda oscilează)!`;
+      } else {
+        const target = deg < 90 ? 'spre În Fază (0°)' : 'spre Antifază (180°)';
+        color = '#fbbf24';
+        bgCol = 'rgba(251, 191, 36, 0.14)';
+        text = isNarrow
+          ? `🔄 BISTABILITATE (Δφ = ${deg}°): Converge ${target}!`
+          : `🔄 BISTABILITATE REALĂ (Δφ = ${deg}°): Converge ${target} (în funcție de starea inițială mai apropiată)!`;
       }
 
       ctx.fillStyle = bgCol;
@@ -726,10 +746,10 @@
         2
       );
 
-      // Draw symmetry axis / mirror line between the two pendulums when in anti-phase
+      // Draw symmetry axis / mirror line or in-phase tandem indicator
       if (this.phaseDiffDeg >= 165) {
         ctx.save();
-        ctx.strokeStyle = 'rgba(0, 229, 255, 0.28)';
+        ctx.strokeStyle = 'rgba(0, 229, 255, 0.32)';
         ctx.setLineDash([4, 4]);
         ctx.lineWidth = 1.2;
         ctx.beginPath();
@@ -740,6 +760,13 @@
         ctx.fillStyle = '#00e5ff';
         ctx.textAlign = 'center';
         ctx.fillText('Axă de Simetrie în Oglindă (180°)', centerX + beamShiftPx, pivotY + rodLen + 22);
+        ctx.restore();
+      } else if (this.phaseDiffDeg <= 15) {
+        ctx.save();
+        ctx.font = 'bold 8.5px Inter, sans-serif';
+        ctx.fillStyle = '#38bdf8';
+        ctx.textAlign = 'center';
+        ctx.fillText('⇄ Oscilație Sincronă Pas la Pas (0°)', centerX + beamShiftPx, pivotY + rodLen + 22);
         ctx.restore();
       }
 
@@ -1080,15 +1107,22 @@
       ctx.fillRect(boxCx - boxSize * 0.5, boxCy - boxSize * 0.5, boxSize, boxSize);
       ctx.strokeRect(boxCx - boxSize * 0.5, boxCy - boxSize * 0.5, boxSize, boxSize);
 
-      // Diagonal guide lines:
-      // Anti-diagonal (theta2 = -theta1 -> Anti-phase 180°)
-      ctx.strokeStyle = 'rgba(0, 229, 255, 0.25)';
+      // Diagonal guide lines for both attractors:
+      const isInPhaseCloser = this.phaseDiffDeg < 90;
+
+      // In-phase diagonal (theta2 = +theta1 -> 0°)
+      ctx.strokeStyle = isInPhaseCloser ? 'rgba(56, 189, 248, 0.50)' : 'rgba(56, 189, 248, 0.16)';
       ctx.setLineDash([2, 2]);
+      ctx.beginPath();
+      ctx.moveTo(boxCx - boxSize * 0.45, boxCy + boxSize * 0.45);
+      ctx.lineTo(boxCx + boxSize * 0.45, boxCy - boxSize * 0.45);
+      ctx.stroke();
+
+      // Anti-phase diagonal (theta2 = -theta1 -> 180°)
+      ctx.strokeStyle = !isInPhaseCloser ? 'rgba(0, 229, 255, 0.50)' : 'rgba(0, 229, 255, 0.16)';
       ctx.beginPath();
       ctx.moveTo(boxCx - boxSize * 0.45, boxCy - boxSize * 0.45);
       ctx.lineTo(boxCx + boxSize * 0.45, boxCy + boxSize * 0.45);
-      ctx.moveTo(boxCx - boxSize * 0.45, boxCy + boxSize * 0.45);
-      ctx.lineTo(boxCx + boxSize * 0.45, boxCy - boxSize * 0.45);
       ctx.stroke();
       ctx.setLineDash([]);
 
@@ -1112,9 +1146,9 @@
       // Current state dot on Lissajous
       const curLx = boxCx + (this.theta1 / 0.55) * (boxSize * 0.44);
       const curLy = boxCy - (this.theta2 / 0.55) * (boxSize * 0.44);
-      ctx.fillStyle = '#00e5ff';
+      ctx.fillStyle = isInPhaseCloser ? '#38bdf8' : '#00e5ff';
       ctx.beginPath();
-      ctx.arc(curLx, curLy, 3.5, 0, 2 * Math.PI);
+      ctx.arc(curLx, curLy, 3.8, 0, 2 * Math.PI);
       ctx.fill();
 
       // Right side of panel: Telemetry Readout & Phase Gauge
@@ -1127,15 +1161,21 @@
       ctx.fillStyle = '#94a3b8';
       ctx.fillText('Defazaj Curent Δφ:', infoX, y + 32);
       ctx.font = 'bold 12px Inter, sans-serif';
-      ctx.fillStyle = this.phaseDiffDeg >= 165 ? '#00e5ff' : '#fbbf24';
-      ctx.fillText(`${deg}° / 180°`, infoX, y + 46);
+      ctx.fillStyle = this.phaseDiffDeg <= 15 ? '#38bdf8' : (this.phaseDiffDeg >= 165 ? '#00e5ff' : '#fbbf24');
+      ctx.fillText(`${deg}°`, infoX, y + 46);
 
       ctx.font = '8px Inter, sans-serif';
       ctx.fillStyle = '#94a3b8';
       ctx.fillText(`Forță Netă: ${(Math.abs(this.force1 + this.force2)).toFixed(2)} N`, infoX, y + 62);
       ctx.fillText(`Amplitudine X: ${(Math.abs(this.beamX) * 45).toFixed(2)} mm`, infoX, y + 75);
-      ctx.fillStyle = '#a78bfa';
-      ctx.fillText('Diagonala ╲ : 180° (Antifază)', infoX, y + 89);
+      
+      const isAnti = this.phaseDiffDeg >= 90;
+      ctx.fillStyle = isAnti ? '#00e5ff' : '#38bdf8';
+      ctx.fillText(
+        isAnti ? 'Diagonala ╲ : 180° (Antifază)' : 'Diagonala ╱ : 0° (În Fază)',
+        infoX,
+        y + 89
+      );
 
       ctx.restore();
     }
