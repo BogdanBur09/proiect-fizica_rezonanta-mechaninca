@@ -111,6 +111,10 @@
         let simHTML;
         if (data.simType === 'forced-oscillation') {
           simHTML = this._buildSlide1SimPanel(data);
+        } else if (data.simType === 'phase-response') {
+          simHTML = this._buildSlide2SimPanel(data);
+        } else if (data.simType === 'quality-factor') {
+          simHTML = this._buildSlide3SimPanel(data);
         } else {
           simHTML = this._buildPlaceholderSimPanel(data);
         }
@@ -174,6 +178,109 @@
               </div>
 
               <span class="sim-controls__hint">💡 Trage masa cu mouse-ul sau click direct pe grafic!</span>
+            </div>
+          </div>
+        </div>
+      `;
+    },
+
+    _buildSlide2SimPanel(data) {
+      const cfg = data.simConfig;
+      return `
+        <div class="slide__simulation">
+          <div class="sim-canvas-wrap">
+            <canvas class="sim-canvas" id="sim-canvas-2"></canvas>
+          </div>
+          <div class="sim-controls">
+            <!-- Row 1: Sliders -->
+            <div class="sim-controls__row">
+              <div class="sim-slider-group">
+                <span class="sim-slider-group__label">ω (pulsație)</span>
+                <input type="range" id="sim2-omega" min="0.2" max="10.0" step="0.05" value="${cfg.omega}">
+                <span class="sim-slider-group__value" id="sim2-omega-val">${cfg.omega.toFixed(2)} rad/s</span>
+              </div>
+              <div class="sim-slider-group">
+                <span class="sim-slider-group__label">ω₀ (proprie)</span>
+                <input type="range" id="sim2-omega0" min="2.0" max="6.0" step="0.1" value="${cfg.omega0}">
+                <span class="sim-slider-group__value" id="sim2-omega0-val">${cfg.omega0.toFixed(1)} rad/s</span>
+              </div>
+              <div class="sim-slider-group">
+                <span class="sim-slider-group__label">γ (amortizare)</span>
+                <input type="range" id="sim2-gamma" min="0.05" max="2.5" step="0.05" value="${cfg.gamma}">
+                <span class="sim-slider-group__value" id="sim2-gamma-val">${cfg.gamma.toFixed(2)} s⁻¹</span>
+              </div>
+            </div>
+
+            <!-- Row 2: Presets -->
+            <div class="sim-controls__row sim-controls__row--presets">
+              <span class="sim-controls__tag">Regimuri Fază:</span>
+              <button class="sim-btn" id="sim2-preset-elastic" title="ω ≪ ω₀: Deplasare în fază cu forța">◄ Regim Elastic (δ → 0°)</button>
+              <button class="sim-btn sim-btn--preset" id="sim2-preset-res" title="ω = ω₀: Defazaj exact 90°, putere maximă">⚡ Rezonanță Putere (δ = 90°)</button>
+              <button class="sim-btn" id="sim2-preset-ampres" title="ω = ωᵣ: Vârful strict de amplitudine">📈 Vârf Amplitudine (ωᵣ)</button>
+              <button class="sim-btn" id="sim2-preset-inertial" title="ω ≫ ω₀: Opoziție de fază">► Regim Inerțial (δ → 180°)</button>
+              <button class="sim-btn sim-btn--primary" id="sim2-toggle-poly" title="Afișează triunghiul fazorial al forțelor">📐 Triunghiul Forțelor</button>
+            </div>
+
+            <!-- Row 3: Actions & Badges -->
+            <div class="sim-controls__actions">
+              <button class="sim-btn sim-btn--primary" id="sim2-play">⏸ Pauză</button>
+              <button class="sim-btn sim-btn--danger" id="sim2-reset">↺ Reset</button>
+
+              <div class="sim-controls__badges">
+                <span class="sim-badge sim-badge--amber" id="sim2-delta-badge">δ = 90.0°</span>
+                <span class="sim-badge sim-badge--cyan" id="sim2-power-badge">⟨P⟩ = 5.71 W</span>
+              </div>
+
+              <span class="sim-controls__hint">💡 Click pe oricare din graficele din dreapta pentru a schimba ω!</span>
+            </div>
+          </div>
+        </div>
+      `;
+    },
+
+    _buildSlide3SimPanel(data) {
+      const cfg = data.simConfig;
+      return `
+        <div class="slide__simulation">
+          <div class="sim-canvas-wrap">
+            <canvas class="sim-canvas" id="sim-canvas-3"></canvas>
+          </div>
+          <div class="sim-controls">
+            <!-- Row 1: Sliders -->
+            <div class="sim-controls__row">
+              <div class="sim-slider-group">
+                <span class="sim-slider-group__label">ω (excitație)</span>
+                <input type="range" id="sim3-omega" min="0.4" max="9.2" step="0.05" value="${cfg.omega}">
+                <span class="sim-slider-group__value" id="sim3-omega-val">${cfg.omega.toFixed(2)} rad/s</span>
+              </div>
+              <div class="sim-slider-group">
+                <span class="sim-slider-group__label" style="color:var(--accent-cyan)">Q₁ (High)</span>
+                <input type="range" id="sim3-q1" min="4.0" max="25.0" step="0.5" value="${cfg.qHigh}">
+                <span class="sim-slider-group__value" id="sim3-q1-val">Q₁ = ${cfg.qHigh.toFixed(1)}</span>
+              </div>
+              <div class="sim-slider-group">
+                <span class="sim-slider-group__label" style="color:var(--accent-amber)">Q₂ (Med)</span>
+                <input type="range" id="sim3-q2" min="1.5" max="8.0" step="0.2" value="${cfg.qMed}">
+                <span class="sim-slider-group__value" id="sim3-q2-val">Q₂ = ${cfg.qMed.toFixed(1)}</span>
+              </div>
+              <div class="sim-slider-group">
+                <span class="sim-slider-group__label" style="color:var(--accent-green)">Q₃ (Low)</span>
+                <input type="range" id="sim3-q3" min="0.3" max="1.5" step="0.05" value="${cfg.qLow}">
+                <span class="sim-slider-group__value" id="sim3-q3-val">Q₃ = ${cfg.qLow.toFixed(2)}</span>
+              </div>
+            </div>
+
+            <!-- Row 2: Actions & Presets -->
+            <div class="sim-controls__actions">
+              <button class="sim-btn sim-btn--primary" id="sim3-play">⏸ Pauză</button>
+              <button class="sim-btn sim-btn--danger" id="sim3-reset">↺ Reset</button>
+              <button class="sim-btn sim-btn--preset" id="sim3-sweep" title="Mătură automat frecvența de la mic la mare">🌊 Baleiaj Frecvență (Auto-Sweep)</button>
+              <button class="sim-btn" id="sim3-preset-res" title="Setează ω = ω₀">⚡ La Rezonanță (ω₀)</button>
+              <button class="sim-btn" id="sim3-preset-impulse" title="Aplică un impuls identic celor 3 mase">💥 Test Impuls</button>
+
+              <div class="sim-controls__badges">
+                <span class="sim-badge sim-badge--cyan" id="sim3-bw-badge">Δω₁ = 0.40 rad/s</span>
+              </div>
             </div>
           </div>
         </div>
@@ -260,6 +367,10 @@
       let sim;
       if (data.simType === 'forced-oscillation') {
         sim = new ForcedOscillationSim(canvasId, data.simConfig);
+      } else if (data.simType === 'phase-response') {
+        sim = new PhaseResponseSim(canvasId, data.simConfig);
+      } else if (data.simType === 'quality-factor') {
+        sim = new QualityFactorSim(canvasId, data.simConfig);
       } else {
         sim = new PlaceholderSim(canvasId, data.simConfig || {});
       }

@@ -103,25 +103,72 @@
     // ===================== SLIDE 2 =====================
     {
       id: 2,
-      title: 'Curba de Răspuns și Defazajul',
+      title: 'Fizica Matematică: Curba de Răspuns și Defazajul',
       category: 'fundamente',
-      simType: 'placeholder',
+      simType: 'phase-response',
       theoryHTML: `
-        <div class="theory-placeholder">
-          <div class="theory-placeholder__icon">📊</div>
-          <div class="theory-placeholder__text">
-            <strong>Slide în pregătire</strong><br>
-            Analiza matematică completă a curbelor de răspuns în amplitudine și fază.
+        <div class="theory-section">
+          <h3>1. Reprezentarea Fazorială (Diagrama Fresnel)</h3>
+          <p>Pentru a rezolva elegant ecuația oscilatorului forțat \\(m\\ddot{x} + b\\dot{x} + kx = F_0\\cos(\\omega t)\\),
+          asociem mărimilor armonice <strong>vectori rotativi (fazori)</strong> în planul complex:
+          deplasarea \\(\\underline{x} = A e^{i(\\omega t - \\delta)}\\), viteza \\(\\underline{v} = i\\omega \\underline{x}\\)
+          (avansată cu \\(90^\\circ\\) față de \\(x\\)) și accelerația \\(\\underline{a} = -\\omega^2 \\underline{x}\\)
+          (în opoziție de fază cu \\(x\\)).</p>
+          <div class="equation-card">
+            <div class="equation-card__label">Echilibrul Fazorial al Forțelor</div>
+            $$\\underbrace{(k - m\\omega^2)A}_{\\text{Componentă Reactivă}} + \\; i \\underbrace{(b\\omega A)}_{\\text{Componentă Disipativă}} = F_0 e^{i\\delta}$$
           </div>
-          <ul class="theory-placeholder__topics">
-            <li>Expresia analitică completă a amplitudinii \\(A(\\omega)\\)</li>
-            <li>Defazajul \\(\\delta(\\omega)\\) și formula \\(\\tan\\delta = \\frac{2\\gamma\\omega}{\\omega_0^2 - \\omega^2}\\)</li>
-            <li>Diagramă vectorială (fazori) și curba de fază</li>
-            <li>Semnificația defazajului de \\(90°\\) la rezonanță</li>
+          <p>Cele trei forțe interne — elastică (\\(kA\\)), inerțială (\\(m\\omega^2 A\\)) și de amortizare (\\(b\\omega A\\), perpendiculară pe deplasare) — formează un <strong>triunghi dreptunghic</strong> a cărui ipotenuză este chiar forța motoare \\(F_0\\)!</p>
+        </div>
+
+        <div class="theory-section">
+          <h3>2. Rezonanța de Amplitudine vs Rezonanța de Viteză</h3>
+          <p>Derivând expresia amplitudinii \\(A(\\omega)\\) în raport cu \\(\\omega\\) și anulând derivata, obținem pulsația la care amplitudinea este strict maximă:</p>
+          <div class="equation-card">
+            <div class="equation-card__label">Pulsația de Rezonanță în Amplitudine</div>
+            $$\\omega_r = \\sqrt{\\omega_0^2 - 2\\gamma^2} = \\omega_0 \\sqrt{1 - 2\\zeta^2}$$
+          </div>
+          <p>Observăm că \\(\\omega_r < \\omega_0\\), iar dacă amortizarea este prea mare (\\(\\gamma > \\omega_0 / \\sqrt{2}\\)), vârful de rezonanță în amplitudine dispare complet! În schimb, <strong>viteza de oscilație</strong> \\(v_{max}(\\omega) = \\omega A(\\omega)\\) are întotdeauna maximul exact la \\(\\omega_v = \\omega_0\\), indiferent de amortizare.</p>
+        </div>
+
+        <div class="theory-section">
+          <h3>3. Cele 3 Regimuri ale Defazajului \\(\\delta(\\omega)\\)</h3>
+          <div class="equation-card">
+            <div class="equation-card__label">Ecuația Unghiului de Defazaj</div>
+            $$\\tan\\delta = \\frac{2\\gamma\\omega}{\\omega_0^2 - \\omega^2}, \\quad \\delta \\in [0, \\pi]$$
+          </div>
+          <ul class="theory-points">
+            <li><strong>1. Regimul Cvasistatic / Controlat de Elasticitate (\\(\\omega \\ll \\omega_0\\)):</strong>
+              \\(\\delta \\approx 0^\\circ\\). Termenul \\(kA\\) domină; masa urmărește fidel și sincron forța aplicată: \\(x(t) \\approx \\frac{F_0}{k}\\cos(\\omega t)\\).</li>
+            <li><strong>2. Regimul Rezonant / Controlat de Amortizare (\\(\\omega = \\omega_0\\)):</strong>
+              \\(\\delta = 90^\\circ\\) (\\(\\pi/2\\text{ rad}\\)). Forța inerțială \\(m\\omega_0^2 A\\) anulează exact forța elastică \\(kA\\)! Întreaga forță motoare \\(F_0\\) echilibrează doar frecarea \\(b\\omega_0 A\\), iar <em>vectorul viteză \\(\\vec{v}\\) este perfect aliniat cu forța \\(\\vec{F}_0\\)</em>.</li>
+            <li><strong>3. Regimul Inerțial / Controlat de Masă (\\(\\omega \\gg \\omega_0\\)):</strong>
+              \\(\\delta \\to 180^\\circ\\) (\\(\\pi\\text{ rad}\\)). Forța variază atât de rapid încât masa nu mai poate ține pasul și oscilează în antifază cu amplitudine mică: \\(x(t) \\approx -\\frac{F_0}{m\\omega^2}\\cos(\\omega t)\\).</li>
           </ul>
         </div>
+
+        <div class="theory-section">
+          <h3>4. Puterea Absorbită și Impedanța Mecanică</h3>
+          <p>Puterea instantanee \\(P(t) = F(t) \\cdot v(t)\\) arată de ce defazajul de \\(90^\\circ\\) este critic. Cum \\(v(t) = -\\omega A \\sin(\\omega t - \\delta)\\), puterea medie absorbită pe o perioadă este:</p>
+          <div class="equation-card">
+            <div class="equation-card__label">Puterea Medie Transferată</div>
+            $$\\langle P(\\omega) \\rangle = \\frac{1}{2} F_0 \\omega A(\\omega) \\sin\\delta = \\frac{F_0^2 \\gamma \\omega^2}{m\\left[(\\omega_0^2 - \\omega^2)^2 + 4\\gamma^2\\omega^2\\right]}$$
+          </div>
+          <p>La \\(\\delta = 90^\\circ\\) (\\(\\sin\\delta = 1\\)), \\(F(t)\\) și \\(v(t)\\) au <strong>același semn în fiecare clipă</strong>: sursa doar pompează energie în sistem fără ca oscilatorul să returneze energie sursei!</p>
+        </div>
+
+        <div class="theory-callout">
+          <strong>Observă în simulare:</strong> Urmărește graficul puterii instantanee \\(P(t) = F(t)v(t)\\).
+          În afara rezonanței, \\(P(t)\\) alternează între valori pozitive și negative (putere reactivă).
+          Exact la rezonanță (\\(\\delta = 90^\\circ\\)), curba \\(P(t)\\) este <strong>100% pozitivă</strong>!
+        </div>
       `,
-      simConfig: { placeholderIcon: '📊', placeholderTitle: 'Diagrame Fazoriale & Curba de Fază', placeholderDesc: 'Vizualizare interactivă a defazajului dintre forță și deplasare, cu grafice sincronizate de amplitudine și fază.' }
+      simConfig: {
+        omega0: 4.0,
+        gamma: 0.35,
+        F0: 2.0,
+        omega: 4.0
+      }
     },
 
     // ===================== SLIDE 3 =====================
@@ -129,23 +176,64 @@
       id: 3,
       title: 'Factorul de Calitate Q și Amortizarea',
       category: 'fundamente',
-      simType: 'placeholder',
+      simType: 'quality-factor',
       theoryHTML: `
-        <div class="theory-placeholder">
-          <div class="theory-placeholder__icon">🔬</div>
-          <div class="theory-placeholder__text">
-            <strong>Slide în pregătire</strong><br>
-            Factorul de calitate \\(Q\\) și influența amortizării asupra formei curbei de rezonanță.
+        <div class="theory-section">
+          <h3>1. Definiția Fizică și Energetică a lui \\(Q\\)</h3>
+          <p><strong>Factorul de calitate \\(Q\\)</strong> (Quality Factor) este parametrul adimensional fundamental
+          care măsoară cât de „pur" sau „selectiv" este un rezonator mecanic, raportând energia maximă stocată
+          în oscilator la energia pierdută prin disipare termică într-un singur ciclu:</p>
+          <div class="equation-card">
+            <div class="equation-card__label">Definiția Energetică și Parametrică</div>
+            $$Q = 2\\pi \\frac{E_{\\text{stocată}}}{\\Delta E_{\\text{disipată / ciclu}}} = \\frac{\\omega_0}{2\\gamma} = \\frac{\\sqrt{k m}}{b} = \\frac{1}{2\\zeta}$$
           </div>
-          <ul class="theory-placeholder__topics">
-            <li>Definiția: \\(Q = \\omega_0 / (2\\gamma) = \\omega_0 / \\Delta\\omega\\)</li>
-            <li>Relația Q ↔ lățimea benzii de rezonanță</li>
-            <li>Energie acumulată vs disipată per ciclu</li>
-            <li>Comparație vizuală: Q ridicat vs Q scăzut</li>
+          <p>Unde \\(\\zeta = \\frac{\\gamma}{\\omega_0} = \\frac{b}{2\\sqrt{km}}\\) este <em>gradul de amortizare critică</em> (damping ratio).</p>
+        </div>
+
+        <div class="theory-section">
+          <h3>2. Lățimea Benzii de Rezonanță (\\(\\Delta\\omega\\) la \\(-3\\text{ dB}\\))</h3>
+          <p>Lățimea vârfului de rezonanță se măsoară între pulsațiile \\(\\omega_1\\) și \\(\\omega_2\\) la care
+          puterea absorbită scade la jumătate din puterea maximă (\\(P = P_{max}/2\\)), ceea ce corespunde
+          unei amplitudini egale cu \\(A_{max} / \\sqrt{2} \\approx 0{,}707 \\cdot A_{max}\\) (nivelul \\(-3\\text{ dB}\\)):</p>
+          <div class="equation-card">
+            <div class="equation-card__label">Relația Bandă de Trecere — Factor Q</div>
+            $$\\Delta\\omega = \\omega_2 - \\omega_1 = 2\\gamma = \\frac{b}{m} \\quad \\Longrightarrow \\quad Q = \\frac{\\omega_0}{\\Delta\\omega}$$
+          </div>
+          <p>Cu cât amortizarea \\(\\gamma\\) este mai mică, cu atât banda \\(\\Delta\\omega\\) este mai îngustă, iar rezonatorul este mai <strong>selectiv în frecvență</strong>.</p>
+        </div>
+
+        <div class="theory-section">
+          <h3>3. Regimurile de Amortizare</h3>
+          <ul class="theory-points">
+            <li><strong>Rezonator de Înaltă Calitate (\\(Q \\gg 1\\), \\(\\zeta \\ll 0{,}5\\)):</strong>
+              Curbă de rezonanță extrem de ascuțită. Sistemul amplifică de \\(Q\\) ori deplasarea statică, dar răspunde doar într-o fereastră îngustă de frecvențe (ex: cristal de cuarț \\(Q \\sim 10^5\\), diapazon din oțel \\(Q \\sim 10^3\\)).</li>
+            <li><strong>Subamortizare Moderată (\\(0{,}5 < Q < 5\\)):</strong>
+              Vârf de rezonanță vizibil, dar larg. Specific structurilor de beton/oțel (\\(Q \\approx 10 - 25\\)) sau componentelor auto.</li>
+            <li><strong>Amortizare Critică și Supraamortizare (\\(Q \\le 0{,}5\\), \\(\\zeta \\ge 1\\)):</strong>
+              Fără amplificare rezonantă (\\(A(\\omega) \\le A(0)\\) pentru orice \\(\\omega\\)). Energia este disipată instantaneu fără oscilații parazite.</li>
           </ul>
         </div>
+
+        <div class="theory-section">
+          <h3>4. Compromisul Ingineresc: Selectivitate vs Stabilitate</h3>
+          <p>În practică, inginerii proiectează factorul \\(Q\\) în funcție de scop:</p>
+          <ul class="theory-points">
+            <li><strong>Când dorim \\(Q\\) MAXIM:</strong> Ceasuri atomice și cu cuarț, filtre RF, senzori MEMS, instrumente muzicale (sunet clar și prelung).</li>
+            <li><strong>Când dorim \\(Q\\) MINIM:</strong> Amortizoare auto, fundații antiseismice, amortizoare TMD pe zgârie-nori (prevenirea acumulării distructive de energie).</li>
+          </ul>
+        </div>
+
+        <div class="theory-callout">
+          <strong>Experiment în Simulare:</strong> Apasă pe butonul <em>„🌊 Baleiaj Frecvență (Auto-Sweep)"</em> pentru a mătura automat frecvența de la mică la mare și compară cum reacționează simultan cele 3 oscilatoare cu factori \\(Q\\) diferiți!
+        </div>
       `,
-      simConfig: { placeholderIcon: '🔬', placeholderTitle: 'Laborator Comparativ Q', placeholderDesc: 'Trei oscilatoare simultane cu amortizări diferite, comparate în timp real la trecerea prin rezonanță.' }
+      simConfig: {
+        omega0: 4.0,
+        omega: 4.0,
+        qHigh: 12.0,
+        qMed: 3.5,
+        qLow: 0.7
+      }
     },
 
     // ===================== SLIDE 4 =====================
