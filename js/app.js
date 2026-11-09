@@ -194,7 +194,7 @@
           simHTML = this._buildSlide6SimPanel(data);
         } else if (data.simType === 'rotating-machinery') {
           simHTML = this._buildSlide7SimPanel(data);
-        } else if (data.simType === 'helicopter-resonance') {
+        } else if (data.simType === 'huygens-pendulums') {
           simHTML = this._buildSlide8SimPanel(data);
         } else if (data.simType === 'tuned-mass-damper') {
           simHTML = this._buildSlide9SimPanel(data);
@@ -609,30 +609,38 @@
             <!-- Row 1: Sliders -->
             <div class="sim-controls__row">
               <div class="sim-control-group">
-                <label class="sim-label" for="sim8-rpm">
-                  <span class="sim-label__text">Turație Rotor \\(\\Omega\\):</span>
-                  <span class="sim-label__value" id="sim8-rpm-val">320 RPM (5.33 Hz)</span>
+                <label class="sim-label" for="sim8-coupling">
+                  <span class="sim-label__text">Cuplaj Grindă \\(\\mu = m/M\\):</span>
+                  <span class="sim-label__value" id="sim8-coupling-val">μ = 0.12</span>
                 </label>
-                <input class="sim-slider" type="range" id="sim8-rpm" min="180" max="460" step="5" value="320">
+                <input class="sim-slider" type="range" id="sim8-coupling" min="0.01" max="0.28" step="0.01" value="0.12">
               </div>
 
               <div class="sim-control-group">
-                <label class="sim-label" for="sim8-damper">
-                  <span class="sim-label__text">Eficiență Amortizoare Lead-Lag:</span>
-                  <span class="sim-label__value" id="sim8-damper-val">100% (Funcțional)</span>
+                <label class="sim-label" for="sim8-damping">
+                  <span class="sim-label__text">Amortizare Suport \\(C_b\\):</span>
+                  <span class="sim-label__value" id="sim8-damping-val">c_b = 0.55</span>
                 </label>
-                <input class="sim-slider" type="range" id="sim8-damper" min="4" max="100" step="2" value="100">
+                <input class="sim-slider" type="range" id="sim8-damping" min="0.05" max="1.50" step="0.05" value="0.55">
+              </div>
+
+              <div class="sim-control-group">
+                <label class="sim-label" for="sim8-detuning">
+                  <span class="sim-label__text">Dezacord Frecvențe \\(\\Delta f\\):</span>
+                  <span class="sim-label__value" id="sim8-detuning-val">Δf = 0.3%</span>
+                </label>
+                <input class="sim-slider" type="range" id="sim8-detuning" min="0.0" max="5.0" step="0.1" value="0.3">
               </div>
             </div>
 
-            <!-- Row 2: Scenario Presets & Pilot Maneuvers -->
+            <!-- Row 2: Scenario Presets & Beam Controls -->
             <div class="sim-controls__presets">
-              <span class="sim-presets-title">Scenarii & Comenzi Pilot:</span>
-              <button class="sim-btn sim-btn--preset" id="sim8-preset-healthy">🛡️ Amortizoare 100% (Sigur)</button>
-              <button class="sim-btn sim-btn--danger" id="sim8-preset-failed">⚠️ Amortizor Spart (Defect 6%)</button>
-              <button class="sim-btn" id="sim8-btn-bump">⚡ Șoc Asimetric Sol (Bump)</button>
-              <button class="sim-btn sim-btn--primary" id="sim8-btn-liftoff">🚁 Decolare de Urgență (Lift-off)</button>
-              <button class="sim-btn" id="sim8-btn-brake">🛑 Tăiere Motor & Frână</button>
+              <span class="sim-presets-title">Scenarii & Cuplaj:</span>
+              <button class="sim-btn sim-btn--preset" id="sim8-preset-random">🎲 Pornire Aleatorie (Huygens 1665)</button>
+              <button class="sim-btn" id="sim8-preset-inphase">🔗 Pornire în Fază (Δφ = 0°)</button>
+              <button class="sim-btn" id="sim8-preset-antiphase">⚖️ Antifază Perfectă (Δφ = 180°)</button>
+              <button class="sim-btn" id="sim8-btn-perturb">⚡ Perturbă Pendulul 2 (Șoc)</button>
+              <button class="sim-btn sim-btn--preset" id="sim8-btn-lock-beam">🔓 Grindă Mobilă pe Role (Cuplaj Activ)</button>
             </div>
 
             <!-- Row 3: Action Buttons & Live Indicators -->
@@ -641,12 +649,12 @@
               <button class="sim-btn sim-btn--danger" id="sim8-reset">↺ Reset</button>
 
               <div class="sim-controls__badges">
-                <span class="sim-badge sim-badge--cyan" id="sim8-rpm-badge">320 RPM</span>
-                <span class="sim-badge sim-badge--cyan" id="sim8-g-badge">Fuselaj: 0.05 g</span>
-                <span class="sim-badge sim-badge--cyan" id="sim8-damper-badge">Amortizoare: 100%</span>
+                <span class="sim-badge sim-badge--amber" id="sim8-phase-badge">Defazaj Δφ: 65°</span>
+                <span class="sim-badge sim-badge--amber" id="sim8-state-badge">🔄 Tranziție / Transfer Impuls</span>
+                <span class="sim-badge sim-badge--cyan" id="sim8-beam-badge">Grindă X: ±0.45 mm</span>
               </div>
 
-              <span class="sim-controls__hint">💡 Trage de diagrama Coleman pentru a schimba turația direct!</span>
+              <span class="sim-controls__hint">💡 Poți trage cu mouse-ul/touch direct de oricare pendul pentru a-i schimba unghiul!</span>
             </div>
           </div>
         </div>
@@ -824,8 +832,8 @@
         sim = new SeismicBuildingsSim(canvasId, data.simConfig);
       } else if (data.simType === 'rotating-machinery') {
         sim = new RotatingMachinerySim(canvasId, data.simConfig);
-      } else if (data.simType === 'helicopter-resonance') {
-        sim = new HelicopterResonanceSim(canvasId, data.simConfig);
+      } else if (data.simType === 'huygens-pendulums') {
+        sim = new HuygensPendulumsSim(canvasId, data.simConfig);
       } else if (data.simType === 'tuned-mass-damper') {
         sim = new TunedMassDamperSim(canvasId, data.simConfig);
       } else {

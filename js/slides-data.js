@@ -507,69 +507,63 @@
     // ===================== SLIDE 8 =====================
     {
       id: 8,
-      title: 'Rezonanța la Sol a Elicopterelor (Ground Resonance)',
-      category: 'pericol',
-      simType: 'helicopter-resonance',
+      title: 'Sincronizarea Pendulelor lui Huygens (1665)',
+      category: 'fundamental',
+      simType: 'huygens-pendulums',
       theoryHTML: `
-        <h3>1. Fenomenul Distructiv de „Ground Resonance”</h3>
+        <h3>1. Descoperirea Istorică: „O Simpatie Ciudată a Ceasurilor” (1665)</h3>
         <p>
-          În aviația elicopterelor, <strong>rezonanța la sol (Ground Resonance)</strong> este una dintre cele mai spectaculoase și violente instabilități aeroelastice mecanice cunoscute. Spre deosebire de ce sugerează denumirea populară, fenomenul <em>nu este de natură acustică</em>, ci reprezintă un <strong>cuplaj elastomecanic divergent</strong> între palele rotorului principal și mișcarea de legănare laterală a fuselajului sprijinit elastic pe sol prin trenul de aterizare.
+          În februarie 1665, fizicianul și matematicianul olandez <strong>Christiaan Huygens</strong> (inventatorul ceasului cu pendul) a observat un fenomen remarcabil în timp ce testa două orologii marine suspendate pe aceeași <strong>grindă de lemn comună</strong> sprijinită pe două scaune.
         </p>
         <p>
-          În condiții nefavorabile, fenomenul se poate dezvolta în mai puțin de <strong>3 până la 5 secunde</strong>, generând accelerații de forfecare de peste \\(5 - 10\\text{ g}\\) care distrug catargul rotorului și dezintegrează complet aeronava pe pistă.
+          Indiferent de poziția sau faza inițială din care erau pornite cele două pendule (chiar și după ce erau perturbate manual), în decurs de aproximativ 30 de minute acestea intrau invariabil într-o stare de <strong>sincronizare în antifază perfectă (\\(\\Delta\\varphi = 180^\\circ\\))</strong> — oscilând în oglindă, apropiindu-se și depărtându-se simultan unul de celălalt! Huygens a numit fenomenul <em>„sympathie des horloges”</em>, marcând prima observație științifică a sincronizării oscilatorilor cuplați neliniari.
         </p>
 
-        <h3>2. Articulațiile de Avans-Întârziere (Lead-Lag) și Centrul de Masă</h3>
+        <h3>2. Modelul Mecanic cu 3 Grade de Libertate (3-DOF) și Eșapamentul</h3>
         <p>
-          Rotoarele elicopterelor complet articulate (cu 3 sau mai multe pale) au pivoți verticali care permit fiecărei pale să oscileze înainte și înapoi în planul discului rotor (mișcare de <em>lead-lag</em>). Această libertate este esențială pentru a absorbi forțele Coriolis cauzate de mișcarea de fluturare (flapping). Fiecare articulație este echipată cu un <strong>amortizor hidraulic sau elastomer de lag</strong>.
-        </p>
-        <p>
-          În regim nominal echilibrat, cele 3 pale sunt decalate simetric la \\(120^\\circ\\), iar centrul comun de greutate \\(G\\) al rotorului coincide exact cu centrul geometric al catargului:
+          Sistemul este alcătuit din două pendule de masă \\(m\\) și lungime \\(L\\) (unghiuri \\(\\theta_1(t), \\theta_2(t)\\)) atârnate de o grindă comună de masă \\(M\\) care se poate deplasa orizontal cu \\(X(t)\\) (rigiditate \\(K_b\\), amortizare \\(C_b\\)). Fiecare ceas conține un <strong>mecanism de eșapament cu ancoră</strong> care livrează un mic impuls la fiecare ciclu (modelat matematic printr-un termen auto-întreținut Van der Pol):
         </p>
         <div class="theory-equation">
           \\[
-          \\vec{r}_G = \\frac{1}{N} \\sum_{i=1}^N \\vec{R}_{\\text{cm}, i} = \\vec{0}
+          \\ddot{\\theta}_i + \\gamma(\\theta_i^2 - \\theta_0^2)\\dot{\\theta}_i + \\frac{g}{L_i}\\sin\\theta_i + \\frac{\\ddot{X}}{L_i}\\cos\\theta_i = 0, \\quad (i = 1, 2)
           \\]
         </div>
-        <p>
-          Dacă însă aeronava suferă un <strong>șoc asimetric la aterizare</strong> (atingere pe o singură roată, denivelare) sau dacă un <strong>amortizor hidraulic cedează (se sparge/pierde fluid)</strong>, palele sunt forțate din poziția simetrică. Centrul de masă al rotorului devine excentric (\\(r_G > 0\\)) și începe să descrie o traiectorie circulară rapidă!
-        </p>
-
-        <h3>3. Teoria lui Coleman (1943) și Modul Regresiv de Vârtej</h3>
-        <p>
-          În celebrul raport <em>NACA Report 381 (1943)</em>, <strong>Robert P. Coleman</strong> a demonstrat că oscilația palelor generează două moduri de vârtej (whirl modes) în sistemul de referință fix al fuzelajului:
-        </p>
         <div class="theory-equation">
           \\[
-          \\omega_{\\text{progresiv}} = \\Omega + \\omega_{\\text{lag}}, \\qquad \\omega_{\\text{regresiv}} = |\\Omega - \\omega_{\\text{lag}}|
+          (M + 2m)\\ddot{X} + C_b\\dot{X} + K_b X + mL \\sum_{i=1}^2 \\left(\\ddot{\\theta}_i\\cos\\theta_i - \\dot{\\theta}_i^2\\sin\\theta_i\\right) = 0
           \\]
         </div>
         <p>
-          unde \\(\\Omega\\) este viteza unghiulară a rotorului (rad/s), iar \\(\\omega_{\\text{lag}}\\) este frecvența proprie de avans-întârziere a palei.
-        </p>
-        <p>
-          Instabilitatea critică apare atunci când frecvența <strong>modului regresiv</strong> coincide cu frecvența proprie de balans lateral a fuselajului pe amortizoarele elastice ale trenului de aterizare (\\(\\omega_{\\text{tren}} \\approx 3{,}0\\text{ Hz}\\)):
-        </p>
-        <div class="theory-equation">
-          \\[
-          |\\Omega - \\omega_{\\text{lag}}| \\approx \\omega_{\\text{tren}} \\implies \\text{INSTABILITATE DIVERGENTĂ}
-          \\]
-        </div>
-        <p>
-          Forța centrifugă excentrică zguduie fuselajul; la rândul său, balansul fuselajului forțează palele să se adune și mai mult în aceeași zonă a discului. Apare o buclă de reacție pozitivă cu amortizare netă negativă — oscilația crește exponențial până la ruperea structurală!
+          Raportul adimensional de cuplaj este \\(\\mu = \\frac{m}{M}\\): cuplajul are loc exclusiv prin <strong>micro-accelerațiile \\(\\ddot{X}\\) ale grinzii comune</strong>! Dacă grinda este blocată rigid (\\(X \\equiv 0\\)), pendulele sunt decuplate și nu se pot sincroniza.
         </p>
 
-        <h3>4. Procedura de Salvare a Pilotului: Decolarea de Urgență</h3>
+        <h3>3. De ce Câștigă Modul în Antifază (\\(\\Delta\\varphi = 180^\\circ\\))?</h3>
         <p>
-          Dacă turația rotorului este suficientă pentru portanță, singura salvare instantanee a echipajului este <strong>decolarea imediată (Pull Collective / Lift-off)</strong>:
+          Introducând coordonatele modale — suma \\(s(t) = \\theta_1 + \\theta_2\\) (<strong>modul în fază</strong>) și diferența \\(d(t) = \\theta_1 - \\theta_2\\) (<strong>modul în antifază</strong>) — observăm comportamente complet opuse:
         </p>
         <ul>
-          <li>Odată ce pneurile părăsesc solul, constanta elastică a trenului pe sol devine nulă (\\(k_{\\text{sol}} = 0\\)).</li>
-          <li>Frecvența de legănare pe sol dispare, decuplând mecanic fuselajul de rotor. Rezonanța la sol este <strong>stinsă instantaneu</strong> în fracțiuni de secundă!</li>
-          <li>Dacă turația este prea mică pentru decolare (în timpul pornirii pe pistă), pilotul trebuie să taie imediat motorul și să aplice frâna de rotor pentru a trece cât mai repede sub turația critică Coleman.</li>
+          <li>
+            <strong>Modul în Fază (\\(\\theta_1 = +\\theta_2,\\; \\Delta\\varphi = 0^\\circ\\)):</strong> Ambele pendule împing grinda în aceeași direcție simultan (\\(F_{\\text{net}} \\propto \\theta_1 + \\theta_2 = 2\\theta_1\\)). Grinda oscilează puternic, iar frecarea suportului \\(C_b \\dot{X}\\) <em>extrage și disipă rapid energia</em> acestui mod!
+          </li>
+          <li>
+            <strong>Modul în Antifază (\\(\\theta_1 = -\\theta_2,\\; \\Delta\\varphi = 180^\\circ\\)):</strong> Forțele orizontale exercitate în pivoți sunt egale și de sens opus:
+            \\[
+            F_{\\text{net}} = F_1 + F_2 \\propto \\sin\\theta_1 + \\sin(-\\theta_1) = 0 \\implies X(t) \\to 0
+            \\]
+            Grinda rămâne în repaus, deci modul în antifază <strong>nu pierde energie prin frecarea suportului</strong>, devenind singurul atractor stabil al sistemului!
+          </li>
         </ul>
+
+        <h3>4. Limba lui Arnold și Condiția de Sincronizare</h3>
+        <p>
+          Dacă între cele două pendule există o diferență de frecvență proprie \\(\\Delta\\omega = |\\omega_1 - \\omega_2|\\) (cauzată de o mică diferență de lungime \\(\\Delta L\\)), blocarea în fază este posibilă doar dacă tăria cuplajului \\(\\mu\\) depășește pragul critic (regiunea <em>Limbii lui Arnold</em>).
+        </p>
       `,
-      simConfig: { rpm: 320, damperHealth: 1.0 }
+      simConfig: {
+        couplingMu: 0.12,
+        beamDamping: 0.55,
+        detuningPct: 0.3
+      }
     },
 
     // ===================== SLIDE 9 =====================
