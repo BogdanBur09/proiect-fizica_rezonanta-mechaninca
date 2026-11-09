@@ -1,8 +1,10 @@
 /* ============================================================
    SLIDE 9: TUNED MASS DAMPER (TMD) — TAIPEI 101 SIMULATION
-   2-DOF Coupled Dynamic Equations with Den Hartog Optimization
-   Upper Panel: Taipei 101 Skyscraper Cutaway & 660-Tonne Golden Pendulum
-   Lower Panel: Dynamic Amplification Frequency Response (FRF) & Telemetry
+   Side-by-Side Comparison + Zoomed 87-92F Pendulum Chamber + Den Hartog FRF
+   - Tower A (Left): Fără TMD (1-DOF, rezonanță violentă)
+   - Tower B (Center): Taipei 101 cu TMD 660t (2-DOF cuplat, atenuat ~75%)
+   - Right Cutaway: Pendulul sferic de 660t în mișcare de arc real + pistoane hidraulice
+   - Bottom: Grafic FRF interactiv (Peak Splitting) + Oscilogramă comparativă
    Author: Buruiana Bogdan-Ioan
    ============================================================ */
 
@@ -13,111 +15,115 @@
     constructor(canvasId, config) {
       super(canvasId, config);
 
-      // --- Physical Parameters of Skyscraper (Taipei 101) ---
-      this.f1 = 0.15;                         // Frecvență proprie turn f1 ~ 0.15 Hz (T1 ~ 6.7 secunde)
-      this.omega1 = 2 * Math.PI * this.f1;     // Pulsație proprie clădire (rad/s)
-      this.zeta1 = 0.012;                     // Amortizare structurală intrinsecă clădire (1.2% - foarte joasă)
+      // --- Physical & Visual Parameters ---
+      this.f1Real = 0.15;                     // Real Taipei 101 fundamental frequency (0.15 Hz, T = 6.7s)
+      this.omega1 = 4.6;                      // Visual simulation angular frequency (rad/s) for lively real-time response
+      this.zeta1 = 0.015;                     // Structural damping of skyscraper alone (1.5% -> Q ~ 33)
 
-      // --- TMD (660-Tonne Golden Pendulum) Parameters ---
-      this.massRatio = 0.025;                 // mu = m2 / M1 (~ 2.5% din masa modală efectivă)
-      this.tmdActive = true;                  // true = TMD liber cu amortizoare hidraulice; false = blocat rigid
-      this.zeta2 = 0.10;                      // Factor de amortizare amortizoare hidraulice TMD (10%)
-      this.tuningRatio = 1 / (1 + this.massRatio); // f = omega2 / omega1 (Den Hartog optim)
+      // TMD Parameters (Den Hartog)
+      this.massRatio = 0.025;                 // mu = m2 / M1 (2.5% -> 660 tonnes)
+      this.tmdActive = true;                  // Whether TMD on Tower B is active or locked
+      this.tuningRatio = 1 / (1 + this.massRatio); // f_opt = 1 / (1 + mu)
+      this.zeta2 = Math.sqrt((3 * this.massRatio) / (8 * (1 + this.massRatio))); // zeta_opt ~ 9.6%
       this.omega2 = this.tuningRatio * this.omega1;
 
-      // --- Excitation Source ---
-      this.freqRatio = 1.0;                   // r = omega_ext / omega1 (1.0 = rezonanță perfectă cu vântul)
+      // Excitation Parameters
+      this.freqRatio = 1.00;                  // r = omega_ext / omega1
       this.omegaExt = this.freqRatio * this.omega1;
-      this.forceAmp = 1.0;                    // Forță modală normalizată
       this.excitationMode = 'wind-resonant';   // 'wind-resonant' | 'typhoon' | 'earthquake' | 'free-impulse'
+      this.extPhase = 0.0;
+      this.gustTimer = 0.0;
 
-      // --- 2-DOF Dynamic State Vectors (RK4 Numerical Integration) ---
-      // x1: Deplasare vârf turn (m)
-      // v1: Viteză vârf turn (m/s)
-      // x2: Deplasare pendul TMD (m)
-      // v2: Viteză pendul TMD (m/s)
+      // --- Dynamical State Variables ---
+      // 1. Unprotected Reference Tower (Fără TMD): x0, v0
+      this.x0 = 0.0;
+      this.v0 = 0.0;
+
+      // 2. Protected Taipei 101 Tower (Cu TMD): x1 (building top), v1, x2 (pendulum absolute), v2
       this.x1 = 0.0;
       this.v1 = 0.0;
       this.x2 = 0.0;
       this.v2 = 0.0;
 
-      // Internal excitation phases
-      this.extPhase = 0.0;
-      this.gustTimer = 0.0;
-      this.gustAmp = 0.0;
-      this.quakeGroundX = 0.0;
+      // Ground displacement for earthquake mode
+      this.groundX = 0.0;
+      this.currentExtForce = 0.0;
+      this.currentTmdForce = 0.0;
+      this.dissipatedPowerKw = 0.0;
 
-      // Energy dissipation tracking
-      this.dissipatedPower = 0.0;
-      this.maxRecordedX1 = 0.05;
-      this.maxRecordedX2 = 0.05;
-
-      // History buffers for real-time deflection waveforms
-      this.historyLen = 160;
-      this.histX1 = new Float32Array(this.historyLen);
-      this.histX2 = new Float32Array(this.historyLen);
+      // History Ring Buffers for Comparative Oscilloscope
+      this.histLen = 180;
+      this.histX0 = new Float32Array(this.histLen); // Unprotected (Red)
+      this.histX1 = new Float32Array(this.histLen); // Protected with TMD (Cyan)
+      this.histRel = new Float32Array(this.histLen); // TMD relative stroke x2 - x1 (Gold)
       this.histIdx = 0;
+      this.histCount = 0;
 
-      // Interactive mouse/touch dragging
+      // Interactive Hit Regions (Golden Sphere Drag & Bode Plot Click/Drag)
       this.isDraggingBall = false;
-      this.dragStartX = 0;
-      this.sphereScreenPos = { x: 0, y: 0, r: 24 };
+      this.isDraggingBode = false;
+      this.sphereHit = { cx: 0, cy: 0, r: 28, pivotX: 0, pivotY: 0, L: 90 };
+      this.bodeRect = null;
 
-      // Streamline particles for wind animation
+      // Wind particles
       this.windParticles = [];
       this._initWindParticles();
-      this._bindMouseEvents();
+      this._bindCanvasInteractions();
     }
 
     _initWindParticles() {
       this.windParticles = [];
-      for (let i = 0; i < 35; i++) {
+      for (let i = 0; i < 28; i++) {
         this.windParticles.push({
           x: Math.random(),
-          y: Math.random() * 0.75,
-          speed: 0.6 + Math.random() * 0.8,
-          len: 15 + Math.random() * 25
+          y: 0.06 + Math.random() * 0.78,
+          speed: 0.45 + Math.random() * 0.55,
+          len: 18 + Math.random() * 24
         });
       }
     }
 
     // =========================================================================
-    // PARAMETER SETTERS & DEN HARTOG CALCULATIONS
+    // PARAMETER SETTERS & DEN HARTOG OPTIMIZATION
     // =========================================================================
     setFreqRatio(r) {
-      this.freqRatio = Math.max(0.4, Math.min(1.6, r));
+      this.freqRatio = Math.max(0.50, Math.min(1.50, r));
       this.omegaExt = this.freqRatio * this.omega1;
+
       const slider = document.getElementById('sim9-freq');
       const valDisp = document.getElementById('sim9-freq-val');
       if (slider) slider.value = this.freqRatio.toFixed(2);
       if (valDisp) {
-        const extF = (this.freqRatio * this.f1).toFixed(3);
-        valDisp.textContent = `${this.freqRatio.toFixed(2)} (${extF} Hz)`;
+        const realHz = (this.freqRatio * this.f1Real).toFixed(3);
+        valDisp.textContent = `${this.freqRatio.toFixed(2)} (${realHz} Hz)`;
       }
       this._updateUIBadges();
       this.requestRender();
     }
 
     setMassRatio(mu) {
-      this.massRatio = Math.max(0.005, Math.min(0.08, mu));
+      this.massRatio = Math.max(0.005, Math.min(0.07, mu));
+      this.tuningRatio = 1 / (1 + this.massRatio);
       this.omega2 = this.tuningRatio * this.omega1;
+
       const slider = document.getElementById('sim9-mass');
       const valDisp = document.getElementById('sim9-mass-val');
       if (slider) slider.value = (this.massRatio * 100).toFixed(1);
       if (valDisp) {
-        valDisp.textContent = `${(this.massRatio * 100).toFixed(1)}% (m₂ ≈ ${(this.massRatio * 26400).toFixed(0)} t)`;
+        const tonnes = Math.round(this.massRatio * 26400);
+        valDisp.textContent = `${(this.massRatio * 100).toFixed(1)}% (m₂ ≈ ${tonnes} t)`;
       }
       this._updateUIBadges();
       this.requestRender();
     }
 
     setZetaTMD(zeta) {
-      this.zeta2 = Math.max(0.01, Math.min(0.28, zeta));
+      this.zeta2 = Math.max(0.01, Math.min(0.25, zeta));
       const slider = document.getElementById('sim9-zeta');
       const valDisp = document.getElementById('sim9-zeta-val');
-      if (slider) slider.value = (this.zeta2 * 100).toFixed(0);
+      if (slider) slider.value = Math.round(this.zeta2 * 100);
       if (valDisp) {
-        valDisp.textContent = `${(this.zeta2 * 100).toFixed(0)}%`;
+        valDisp.textContent = `${Math.round(this.zeta2 * 100)}%`;
       }
       this._updateUIBadges();
       this.requestRender();
@@ -126,7 +132,6 @@
     setTMDActive(active) {
       this.tmdActive = !!active;
       if (!this.tmdActive) {
-        // Locked to building
         this.x2 = this.x1;
         this.v2 = this.v1;
       }
@@ -140,22 +145,16 @@
     }
 
     applyDenHartogOptimum() {
-      // Den Hartog Optimal Tuning Formula:
-      // f_opt = 1 / (1 + mu)
-      // zeta_opt = sqrt( 3*mu / (8*(1 + mu)) )
       this.tuningRatio = 1 / (1 + this.massRatio);
       this.omega2 = this.tuningRatio * this.omega1;
-      this.zeta2 = Math.sqrt((3 * this.massRatio) / (8 * (1 + this.massRatio)));
-
-      this.setZetaTMD(this.zeta2);
+      const zOpt = Math.sqrt((3 * this.massRatio) / (8 * (1 + this.massRatio)));
+      this.setZetaTMD(zOpt);
       this.setTMDActive(true);
-      this._updateUIBadges();
-      this.requestRender();
     }
 
     setExcitationMode(mode) {
       this.excitationMode = mode;
-      const modes = ['wind-resonant', 'typhoon', 'earthquake', 'free-impulse'];
+      const modes = ['wind-resonant', 'typhoon', 'earthquake'];
       modes.forEach((m) => {
         const btn = document.getElementById(`sim9-preset-${m}`);
         if (btn) {
@@ -165,41 +164,64 @@
       });
 
       if (mode === 'wind-resonant') {
-        this.setFreqRatio(1.0);
-        this.forceAmp = 1.0;
+        this.setFreqRatio(1.00);
+        this.extPhase = 0.0;
+        // Quadrature steady-state at resonance: F(t) = cos(w1*t) => x0(t) = A*sin(w1*t)
+        this.x0 = 0.0;
+        this.v0 = 0.92 * this.omega1;
+        this.x1 = 0.0;
+        this.v1 = 0.21 * this.omega1;
+        this.x2 = -0.75;
+        this.v2 = 0.0;
       } else if (mode === 'typhoon') {
-        // Super Typhoon Soudelor 2015 conditions
-        this.setFreqRatio(0.96);
-        this.forceAmp = 1.65;
+        this.setFreqRatio(0.98);
+        this.extPhase = 0.0;
+        this.x0 = 0.0;
+        this.v0 = 1.02 * this.omega1;
+        this.x1 = 0.0;
+        this.v1 = 0.24 * this.omega1;
+        this.x2 = -0.85;
+        this.v2 = 0.0;
       } else if (mode === 'earthquake') {
-        this.setFreqRatio(1.04);
-        this.forceAmp = 1.35;
-      } else if (mode === 'free-impulse') {
-        this.forceAmp = 0.0;
-        this.x1 = 0.85; // 85 cm initial push
+        this.setFreqRatio(1.00);
+        this.extPhase = 0.0;
+        this.x0 = -0.92;
+        this.v0 = 0.0;
+        this.x1 = -0.21;
+        this.v1 = 0.0;
         this.x2 = 0.0;
-        this.v1 = 0;
-        this.v2 = 0;
+        this.v2 = -0.75 * this.omega1;
+      } else if (mode === 'free-impulse') {
+        // Give both towers an identical 95 cm lateral shock impulse!
+        this.x0 = 0.95;
+        this.v0 = 0.0;
+        this.x1 = 0.95;
+        this.v1 = 0.0;
+        this.x2 = 0.0;
+        this.v2 = 0.0;
       }
 
+      if (!this.running) this.start();
       this._updateUIBadges();
       this.requestRender();
     }
 
     onReset() {
+      this.x0 = 0.0;
+      this.v0 = 0.0;
       this.x1 = 0.0;
       this.v1 = 0.0;
       this.x2 = 0.0;
       this.v2 = 0.0;
       this.extPhase = 0.0;
       this.gustTimer = 0.0;
-      this.gustAmp = 0.0;
-      this.quakeGroundX = 0.0;
-      this.dissipatedPower = 0.0;
-      this.maxRecordedX1 = 0.05;
-      this.maxRecordedX2 = 0.05;
+      this.groundX = 0.0;
+      this.histIdx = 0;
+      this.histCount = 0;
+      this.histX0.fill(0);
+      this.histX1.fill(0);
+      this.histRel.fill(0);
 
-      this.setFreqRatio(1.0);
       this.setMassRatio(0.025);
       this.applyDenHartogOptimum();
       this.setExcitationMode('wind-resonant');
@@ -210,53 +232,68 @@
     }
 
     // =========================================================================
-    // EVENT BINDINGS
+    // CANVAS MOUSE / TOUCH INTERACTIONS
     // =========================================================================
-    _bindMouseEvents() {
+    _bindCanvasInteractions() {
       if (!this.canvas) return;
 
-      const getCoords = (e) => {
+      const getPos = (e) => {
         const rect = this.canvas.getBoundingClientRect();
-        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-        return {
-          x: clientX - rect.left,
-          y: clientY - rect.top
-        };
+        const cx = e.touches ? e.touches[0].clientX : e.clientX;
+        const cy = e.touches ? e.touches[0].clientY : e.clientY;
+        return { x: cx - rect.left, y: cy - rect.top };
       };
 
-      const onStart = (e) => {
-        const pt = getCoords(e);
-        const dist = Math.hypot(pt.x - this.sphereScreenPos.x, pt.y - this.sphereScreenPos.y);
-        if (dist <= this.sphereScreenPos.r + 14) {
+      const onDown = (e) => {
+        const pt = getPos(e);
+        // 1. Check Golden Pendulum Ball hit
+        const distBall = Math.hypot(pt.x - this.sphereHit.cx, pt.y - this.sphereHit.cy);
+        if (distBall <= this.sphereHit.r + 18) {
           this.isDraggingBall = true;
-          this.dragStartX = pt.x;
+          return;
+        }
+        // 2. Check FRF Bode Plot click/drag
+        if (
+          this.bodeRect &&
+          pt.x >= this.bodeRect.x &&
+          pt.x <= this.bodeRect.x + this.bodeRect.w &&
+          pt.y >= this.bodeRect.y &&
+          pt.y <= this.bodeRect.y + this.bodeRect.h
+        ) {
+          this.isDraggingBode = true;
+          const u = (pt.x - this.bodeRect.x) / this.bodeRect.w;
+          this.setFreqRatio(0.50 + u * 1.00);
         }
       };
 
       const onMove = (e) => {
-        if (!this.isDraggingBall) return;
-        const pt = getCoords(e);
-        const dxPixels = pt.x - this.dragStartX;
-        // 1 meter visual ~ 100 pixels
-        const deltaMeters = dxPixels / 90;
-        this.x2 = Math.max(-1.5, Math.min(1.5, this.x2 + deltaMeters * 0.2));
-        this.v2 = 0;
-        this.dragStartX = pt.x;
-        this.requestRender();
+        if (!this.isDraggingBall && !this.isDraggingBode) return;
+        const pt = getPos(e);
+
+        if (this.isDraggingBall) {
+          const dxPx = pt.x - this.sphereHit.pivotX;
+          const relMeters = Math.max(-1.25, Math.min(1.25, dxPx / 48));
+          this.x2 = this.x1 + relMeters;
+          this.v2 = 0.0;
+          this.requestRender();
+        } else if (this.isDraggingBode && this.bodeRect) {
+          const u = Math.max(0, Math.min(1, (pt.x - this.bodeRect.x) / this.bodeRect.w));
+          this.setFreqRatio(0.50 + u * 1.00);
+        }
       };
 
-      const onEnd = () => {
+      const onUp = () => {
         this.isDraggingBall = false;
+        this.isDraggingBode = false;
       };
 
-      this.canvas.addEventListener('mousedown', onStart);
+      this.canvas.addEventListener('mousedown', onDown);
       this.canvas.addEventListener('mousemove', onMove);
-      window.addEventListener('mouseup', onEnd);
+      window.addEventListener('mouseup', onUp);
 
-      this.canvas.addEventListener('touchstart', onStart, { passive: true });
+      this.canvas.addEventListener('touchstart', onDown, { passive: true });
       this.canvas.addEventListener('touchmove', onMove, { passive: true });
-      window.addEventListener('touchend', onEnd);
+      window.addEventListener('touchend', onUp);
     }
 
     onInit() {
@@ -279,28 +316,18 @@
         freqSlider.value = this.freqRatio.toFixed(2);
         freqSlider.addEventListener('input', (e) => this.setFreqRatio(parseFloat(e.target.value)));
       }
-
       if (massSlider) {
         massSlider.value = (this.massRatio * 100).toFixed(1);
         massSlider.addEventListener('input', (e) => this.setMassRatio(parseFloat(e.target.value) / 100));
       }
-
       if (zetaSlider) {
-        zetaSlider.value = (this.zeta2 * 100).toFixed(0);
+        zetaSlider.value = Math.round(this.zeta2 * 100);
         zetaSlider.addEventListener('input', (e) => this.setZetaTMD(parseFloat(e.target.value) / 100));
       }
 
-      if (toggleTmdBtn) {
-        toggleTmdBtn.addEventListener('click', () => this.setTMDActive(!this.tmdActive));
-      }
-
-      if (optBtn) {
-        optBtn.addEventListener('click', () => this.applyDenHartogOptimum());
-      }
-
-      if (impulseBtn) {
-        impulseBtn.addEventListener('click', () => this.setExcitationMode('free-impulse'));
-      }
+      if (toggleTmdBtn) toggleTmdBtn.addEventListener('click', () => this.setTMDActive(!this.tmdActive));
+      if (optBtn) optBtn.addEventListener('click', () => this.applyDenHartogOptimum());
+      if (impulseBtn) impulseBtn.addEventListener('click', () => this.setExcitationMode('free-impulse'));
 
       if (btnWind) btnWind.addEventListener('click', () => this.setExcitationMode('wind-resonant'));
       if (btnTyphoon) btnTyphoon.addEventListener('click', () => this.setExcitationMode('typhoon'));
@@ -312,7 +339,6 @@
           playBtn.textContent = this.running ? '⏸ Pauză' : '▶ Rulează';
         });
       }
-
       if (resetBtn) {
         resetBtn.addEventListener('click', () => {
           this.reset();
@@ -321,36 +347,54 @@
         });
       }
 
+      // Initialize at steady-state resonant response & pre-warm 3 seconds of history
+      // so the oscilloscope and twin towers show the full contrast immediately on load!
+      this.extPhase = 0.0;
+      this.x0 = 0.0;
+      this.v0 = 0.92 * this.omega1;
+      this.x1 = 0.0;
+      this.v1 = 0.21 * this.omega1;
+      this.x2 = -0.75;
+      this.v2 = 0.0;
+
+      for (let i = 0; i < this.histLen; i++) {
+        this._rk4Step(0.016);
+        this.histX0[this.histIdx] = this.x0;
+        this.histX1[this.histIdx] = this.x1;
+        this.histRel[this.histIdx] = (this.x2 - this.x1) * 0.52;
+        this.histIdx = (this.histIdx + 1) % this.histLen;
+        if (this.histCount < this.histLen) this.histCount++;
+      }
+
       this._updateUIBadges();
     }
 
     // =========================================================================
-    // 2-DOF NUMERICAL PHYSICS ENGINE (RUNGE-KUTTA 4)
+    // NUMERICAL RK4 SOLVER FOR BOTH TOWERS (1-DOF vs 2-DOF)
     // =========================================================================
     update(dt) {
+      const safeDt = Math.min(Math.max(0, dt), 0.035);
       const subSteps = 6;
-      const subDt = Math.min(dt, 0.04) / subSteps;
+      const h = safeDt / subSteps;
 
       for (let s = 0; s < subSteps; s++) {
-        this._rk4Step(subDt);
+        this._rk4Step(h);
       }
 
-      // Record peak telemetry
-      if (Math.abs(this.x1) > this.maxRecordedX1) this.maxRecordedX1 = Math.abs(this.x1);
-      if (Math.abs(this.x2 - this.x1) > this.maxRecordedX2) this.maxRecordedX2 = Math.abs(this.x2 - this.x1);
-
-      // Save wave history
+      // Store waveforms
+      this.histX0[this.histIdx] = this.x0;
       this.histX1[this.histIdx] = this.x1;
-      this.histX2[this.histIdx] = this.x2;
-      this.histIdx = (this.histIdx + 1) % this.historyLen;
+      this.histRel[this.histIdx] = (this.x2 - this.x1) * 0.52;
+      this.histIdx = (this.histIdx + 1) % this.histLen;
+      if (this.histCount < this.histLen) this.histCount++;
 
-      // Update wind particles
+      // Move wind particles
+      const windMult = this.excitationMode === 'typhoon' ? 2.1 : (this.excitationMode === 'wind-resonant' ? 1.2 : 0.4);
       for (const p of this.windParticles) {
-        const gustBonus = (this.excitationMode === 'typhoon' ? 1.6 : 1.0);
-        p.x += p.speed * subDt * 0.35 * gustBonus;
+        p.x += p.speed * safeDt * 0.55 * windMult;
         if (p.x > 1.05) {
-          p.x = -0.05;
-          p.y = Math.random() * 0.75;
+          p.x = -0.06;
+          p.y = 0.06 + Math.random() * 0.78;
         }
       }
 
@@ -359,91 +403,97 @@
 
     _rk4Step(dt) {
       this.extPhase += this.omegaExt * dt;
+      this.gustTimer += dt;
 
-      // Compute External Modal Forcing F(t) / M1
+      const w1 = this.omega1;
+      const w2 = this.omega2;
+      const z1 = this.zeta1;
+      const z2 = this.zeta2;
+      const mu = this.massRatio;
+
+      // Excitation acceleration F_ext / M1
+      // Normalized so steady-state 1-DOF peak at resonance (1 / (2*z1)) reaches ~ 0.95 m (95 cm)
+      const baseDrive = 2 * z1 * (w1 * w1) * 0.88;
       let fExt = 0.0;
+
       if (this.excitationMode === 'wind-resonant') {
-        fExt = this.forceAmp * 0.28 * Math.cos(this.extPhase);
+        fExt = baseDrive * Math.cos(this.extPhase);
+        this.groundX = 0.0;
       } else if (this.excitationMode === 'typhoon') {
-        // Multi-frequency wind gust spectrum simulating Typhoon Soudelor (2015)
-        this.gustTimer += dt;
-        const turbulentFluc = Math.sin(this.extPhase) * 0.7 + Math.sin(this.extPhase * 2.3) * 0.35 + Math.cos(this.gustTimer * 0.6) * 0.25;
-        fExt = this.forceAmp * 0.32 * (1.1 + turbulentFluc);
+        const gust = Math.cos(this.extPhase) + 0.35 * Math.sin(this.extPhase * 1.9) + 0.25 * Math.cos(this.gustTimer * 2.1);
+        fExt = baseDrive * 1.15 * gust;
+        this.groundX = 0.0;
       } else if (this.excitationMode === 'earthquake') {
-        // Ground acceleration shaking
-        fExt = this.forceAmp * 0.36 * Math.sin(this.extPhase);
-        this.quakeGroundX = 14 * Math.sin(this.extPhase);
-      } else if (this.excitationMode === 'free-impulse') {
+        fExt = baseDrive * 1.10 * Math.sin(this.extPhase);
+        this.groundX = 0.35 * Math.sin(this.extPhase);
+      } else {
         fExt = 0.0;
-        this.quakeGroundX = 0.0;
+        this.groundX = 0.0;
       }
 
-      // Coupled 2-DOF Equations:
-      // Primary: x1'' + 2*zeta1*w1*x1' + w1^2*x1 - [2*zeta2*w2*mu*(x2' - x1') + mu*w2^2*(x2 - x1)] = fExt
-      // Secondary: x2'' + 2*zeta2*w2*(x2' - x1') + w2^2*(x2 - x1) = 0
-      const getDerivs = (x1, v1, x2, v2) => {
-        const w1 = this.omega1;
-        const w2 = this.omega2;
-        const mu = this.massRatio;
-        const z1 = this.zeta1;
-        const z2 = this.zeta2;
+      this.currentExtForce = fExt / Math.max(0.001, baseDrive);
 
+      // State vector: [x0, v0, x1, v1, x2, v2]
+      const derivs = (x0, v0, x1, v1, x2, v2) => {
+        // Tower A (Unprotected linear 1-DOF resonator)
+        const a0 = fExt - 2 * z1 * w1 * v0 - (w1 * w1) * x0;
+
+        // Tower B (Protected by 660t TMD)
         let a1, a2;
         if (this.tmdActive) {
-          const relDisp = x2 - x1;
-          const relVel = v2 - v1;
-          // Damper and spring coupling force per unit primary mass
-          const coupling = 2 * z2 * w2 * mu * relVel + mu * (w2 * w2) * relDisp;
-          a1 = fExt - 2 * z1 * w1 * v1 - (w1 * w1) * x1 + coupling;
-          a2 = -2 * z2 * w2 * relVel - (w2 * w2) * relDisp;
+          const relX = x2 - x1;
+          const relV = v2 - v1;
+          // Coupling acceleration exerted by TMD on primary building mass
+          const tmdAccel = 2 * z2 * w2 * mu * relV + mu * (w2 * w2) * relX;
+          a1 = fExt - 2 * z1 * w1 * v1 - (w1 * w1) * x1 + tmdAccel;
+          a2 = this.isDraggingBall ? 0 : (-2 * z2 * w2 * relV - (w2 * w2) * relX);
         } else {
-          // TMD is locked to the structure: effective combined single DOF
-          // (1 + mu) * x1'' + (c1)*x1' + k1*x1 = fExt
+          // TMD locked to building
           a1 = (fExt - 2 * z1 * w1 * v1 - (w1 * w1) * x1) / (1 + mu);
           a2 = a1;
         }
 
-        return [v1, a1, v2, a2];
+        return [v0, a0, v1, a1, this.isDraggingBall ? 0 : v2, a2];
       };
 
-      // RK4 step
-      const [v1_k1, a1_k1, v2_k1, a2_k1] = getDerivs(this.x1, this.v1, this.x2, this.v2);
-
-      const [v1_k2, a1_k2, v2_k2, a2_k2] = getDerivs(
-        this.x1 + 0.5 * dt * v1_k1,
-        this.v1 + 0.5 * dt * a1_k1,
-        this.x2 + 0.5 * dt * v2_k1,
-        this.v2 + 0.5 * dt * a2_k1
+      const s = [this.x0, this.v0, this.x1, this.v1, this.x2, this.v2];
+      const k1 = derivs(s[0], s[1], s[2], s[3], s[4], s[5]);
+      const k2 = derivs(
+        s[0] + 0.5 * dt * k1[0], s[1] + 0.5 * dt * k1[1],
+        s[2] + 0.5 * dt * k1[2], s[3] + 0.5 * dt * k1[3],
+        s[4] + 0.5 * dt * k1[4], s[5] + 0.5 * dt * k1[5]
+      );
+      const k3 = derivs(
+        s[0] + 0.5 * dt * k2[0], s[1] + 0.5 * dt * k2[1],
+        s[2] + 0.5 * dt * k2[2], s[3] + 0.5 * dt * k2[3],
+        s[4] + 0.5 * dt * k2[4], s[5] + 0.5 * dt * k2[5]
+      );
+      const k4 = derivs(
+        s[0] + dt * k3[0], s[1] + dt * k3[1],
+        s[2] + dt * k3[2], s[3] + dt * k3[3],
+        s[4] + dt * k3[4], s[5] + dt * k3[5]
       );
 
-      const [v1_k3, a1_k3, v2_k3, a2_k3] = getDerivs(
-        this.x1 + 0.5 * dt * v1_k2,
-        this.v1 + 0.5 * dt * a1_k2,
-        this.x2 + 0.5 * dt * v2_k2,
-        this.v2 + 0.5 * dt * a2_k2
-      );
+      this.x0 += (dt / 6) * (k1[0] + 2 * k2[0] + 2 * k3[0] + k4[0]);
+      this.v0 += (dt / 6) * (k1[1] + 2 * k2[1] + 2 * k3[1] + k4[1]);
+      this.x1 += (dt / 6) * (k1[2] + 2 * k2[2] + 2 * k3[2] + k4[2]);
+      this.v1 += (dt / 6) * (k1[3] + 2 * k2[3] + 2 * k3[3] + k4[3]);
 
-      const [v1_k4, a1_k4, v2_k4, a2_k4] = getDerivs(
-        this.x1 + dt * v1_k3,
-        this.v1 + dt * a1_k3,
-        this.x2 + dt * v2_k3,
-        this.v2 + dt * a2_k3
-      );
-
-      this.x1 += (dt / 6) * (v1_k1 + 2 * v1_k2 + 2 * v1_k3 + v1_k4);
-      this.v1 += (dt / 6) * (a1_k1 + 2 * a1_k2 + 2 * a1_k3 + a1_k4);
-
-      if (this.tmdActive) {
-        this.x2 += (dt / 6) * (v2_k1 + 2 * v2_k2 + 2 * v2_k3 + v2_k4);
-        this.v2 += (dt / 6) * (a2_k1 + 2 * a2_k2 + 2 * a2_k3 + a2_k4);
-        // Instantaneous power dissipated in dampers = c2 * (v2 - v1)^2
-        const relV = this.v2 - this.v1;
-        this.dissipatedPower = (2 * this.zeta2 * this.omega2 * (this.massRatio * 26000000)) * (relV * relV) / 1000; // kW
-      } else {
-        this.x2 = this.x1;
-        this.v2 = this.v1;
-        this.dissipatedPower = 0.0;
+      if (!this.isDraggingBall) {
+        if (this.tmdActive) {
+          this.x2 += (dt / 6) * (k1[4] + 2 * k2[4] + 2 * k3[4] + k4[4]);
+          this.v2 += (dt / 6) * (k1[5] + 2 * k2[5] + 2 * k3[5] + k4[5]);
+        } else {
+          this.x2 = this.x1;
+          this.v2 = this.v1;
+        }
       }
+
+      // Compute TMD counter-force and dissipated hydraulic power
+      const relX = this.x2 - this.x1;
+      const relV = this.v2 - this.v1;
+      this.currentTmdForce = this.tmdActive ? (relX * 1.4 + relV * 0.25) : 0.0;
+      this.dissipatedPowerKw = this.tmdActive ? Math.min(999, Math.abs(relV * relV) * 185 * this.zeta2 * 10) : 0;
     }
 
     _updateUIBadges() {
@@ -457,14 +507,20 @@
       }
 
       if (dispBadge) {
-        const x1Cm = (Math.abs(this.x1) * 100).toFixed(0);
-        dispBadge.textContent = `Vârf Turn: ±${x1Cm} cm`;
-        dispBadge.className = x1Cm > 55 ? 'sim-badge sim-badge--danger' : (x1Cm > 25 ? 'sim-badge sim-badge--amber' : 'sim-badge sim-badge--cyan');
+        const amp1 = Math.hypot(this.x1, this.v1 / this.omega1);
+        const amp0 = Math.hypot(this.x0, this.v0 / this.omega1);
+        const cm1 = Math.round(amp1 * 100);
+        const cm0 = Math.round(amp0 * 100);
+        dispBadge.textContent = `Cu TMD: ±${cm1} cm (Fără: ±${cm0} cm)`;
+        dispBadge.className = cm1 > 50 ? 'sim-badge sim-badge--danger' : 'sim-badge sim-badge--cyan';
       }
 
       if (tmdBadge) {
-        const xTmdRel = (Math.abs(this.x2 - this.x1) * 100).toFixed(0);
-        tmdBadge.textContent = `Cursă Bilă: ${xTmdRel} cm`;
+        const relX = (this.x2 - this.x1) * 0.52;
+        const relV = (this.v2 - this.v1) * 0.52;
+        const relAmp = Math.hypot(relX, relV / this.omega2);
+        const relCm = Math.round(relAmp * 100);
+        tmdBadge.textContent = `Cursă Bilă: ±${relCm} cm`;
       }
     }
 
@@ -480,394 +536,557 @@
 
       ctx.clearRect(0, 0, W, H);
 
-      // Deep atmospheric twilight gradient background
-      const skyGrad = ctx.createLinearGradient(0, 0, 0, H);
-      skyGrad.addColorStop(0, '#060a14');
-      skyGrad.addColorStop(0.55, '#0b162a');
-      skyGrad.addColorStop(1, '#070d18');
-      ctx.fillStyle = skyGrad;
+      // Atmospheric night sky background
+      const bg = ctx.createLinearGradient(0, 0, 0, H);
+      bg.addColorStop(0, '#050912');
+      bg.addColorStop(0.55, '#0a1426');
+      bg.addColorStop(1, '#060b16');
+      ctx.fillStyle = bg;
       ctx.fillRect(0, 0, W, H);
 
-      // Top Status Banner (4% of height)
-      const bannerH = H < 360 ? 22 : 28;
-      this._drawStatusBanner(ctx, W, bannerH);
+      const bannerH = H < 350 ? 22 : 26;
+      this._drawBanner(ctx, W, bannerH);
 
-      // Layout split:
-      // Upper 62% = Taipei 101 Tower & Giant Pendulum Cutaway
-      // Lower 38% = Frequency Response FRF (Left) & Telemetry / Waveform (Right)
       const topY = bannerH;
-      const topH = (H - bannerH) * 0.62;
+      const topH = (H - bannerH) * 0.60;
       const botY = topY + topH;
       const botH = H - botY;
 
-      this._drawTowerAndPendulum(ctx, 0, topY, W, topH);
-      this._drawLowerDashboard(ctx, 0, botY, W, botH);
+      this._drawUpperComparisonAndCutaway(ctx, 0, topY, W, topH);
+      this._drawLowerGraphs(ctx, 0, botY, W, botH);
     }
 
-    _drawStatusBanner(ctx, W, h) {
+    _drawBanner(ctx, W, h) {
       const isNarrow = W < 580;
-      const optF = (1 / (1 + this.massRatio)).toFixed(3);
-      const optZ = (Math.sqrt((3 * this.massRatio) / (8 * (1 + this.massRatio))) * 100).toFixed(1);
+      const fOpt = (1 / (1 + this.massRatio)).toFixed(3);
+      const zOpt = (Math.sqrt((3 * this.massRatio) / (8 * (1 + this.massRatio))) * 100).toFixed(1);
 
-      ctx.fillStyle = this.tmdActive ? 'rgba(0, 229, 255, 0.12)' : 'rgba(255, 23, 68, 0.22)';
+      ctx.fillStyle = this.tmdActive ? 'rgba(0, 229, 255, 0.13)' : 'rgba(255, 23, 68, 0.22)';
       ctx.fillRect(0, 0, W, h);
-      ctx.strokeStyle = this.tmdActive ? '#00e5ff44' : '#ff174466';
+      ctx.strokeStyle = this.tmdActive ? '#00e5ff55' : '#ff174477';
       ctx.beginPath();
       ctx.moveTo(0, h);
       ctx.lineTo(W, h);
       ctx.stroke();
 
-      ctx.font = `bold ${isNarrow ? 9 : 11}px Inter, sans-serif`;
+      ctx.font = `bold ${isNarrow ? 8.5 : 10.5}px Inter, sans-serif`;
       ctx.fillStyle = this.tmdActive ? '#00e5ff' : '#ff5252';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
 
-      let msg = '';
-      if (!this.tmdActive) {
-        msg = isNarrow
-          ? '⚠️ TMD BLOCAT: Turnul oscilează liber fără absorbant inerțial (Q ≈ 45, rezonanță violentă)!'
-          : '⚠️ TMD BLOCAT: Fără amortizor inerțial acordat, turnul intră în rezonanță violentă (Q ≈ 45, risc structural masiv)!';
-      } else {
-        msg = isNarrow
-          ? `🛡️ TMD ACTIV (Taipei 101): f_opt=${optF}, ζ_opt=${optZ}% — Oscilațiile sunt reduse cu 75%! Drag pe bilă pentru test!`
-          : `🛡️ AMORTIZOR ACORDAT OPTIM (DEN HARTOG): f_opt = ${optF}, ζ_opt = ${optZ}% — Energia cinetică este absorbită și disipată în căldură! (Trage de bilă)`;
-      }
+      const text = this.tmdActive
+        ? (isNarrow
+            ? `🛡️ TAIPEI 101 TMD ACTIV (f_opt=${fOpt}, ζ_opt=${zOpt}%): Pendulul trage în sens opus vântului!`
+            : `🛡️ COMPARAȚIE ÎN TIMP REAL: Turn fără TMD (Stânga, Roșu) vs. Turnul Taipei 101 cu Pendul de 660t (Centru, Cyan) — Trage de bila de aur!`)
+        : `⚠️ TMD BLOCAT: Ambele turnuri oscilează periculos în rezonanță (Q ≈ 33)! Activează TMD pentru a vedea atenuarea!`;
 
-      ctx.fillText(msg, W / 2, h / 2);
+      ctx.fillText(text, W / 2, h / 2);
     }
 
     // =========================================================================
-    // UPPER PANEL: TAIPEI 101 TOWER & CUTAWAY PENDULUM CHAMBER
+    // UPPER PANEL: LEFT = SIDE-BY-SIDE TOWERS, RIGHT = ZOOMED PENDULUM CHAMBER
     // =========================================================================
-    _drawTowerAndPendulum(ctx, gx, gy, gw, gh) {
+    _drawUpperComparisonAndCutaway(ctx, gx, gy, gw, gh) {
       ctx.save();
       ctx.beginPath();
       ctx.rect(gx, gy, gw, gh);
       ctx.clip();
 
-      const isNarrow = gw < 560;
-
-      // Draw flowing wind streamlines across sky
       this._drawWindStreamlines(ctx, gx, gy, gw, gh);
 
-      // Ground tarmac baseline
-      const groundY = gy + gh - 10;
-      ctx.fillStyle = '#0f172a';
-      ctx.fillRect(gx, groundY, gw, 10);
-      ctx.strokeStyle = '#334155';
-      ctx.lineWidth = 1.5;
-      ctx.beginPath();
-      ctx.moveTo(gx, groundY);
-      ctx.lineTo(gx + gw, groundY);
-      ctx.stroke();
+      const leftW = gw * 0.48;
+      const rightX = gx + leftW;
+      const rightW = gw - leftW;
 
-      // Horizontal layout:
-      // Left side (38% of width): Whole Taipei 101 skyscraper silhouette swaying
-      // Right side (62% of width): Zoomed-in cutaway of the 87th–92nd floor sphere chamber
-      const towerAreaW = isNarrow ? gw * 0.34 : gw * 0.36;
-      const chamberAreaX = gx + towerAreaW;
-      const chamberAreaW = gw - towerAreaW;
-
-      this._drawWholeSkyscraper(ctx, gx, gy, towerAreaW, gh, groundY);
-      this._drawCutawaySphereChamber(ctx, chamberAreaX, gy, chamberAreaW, gh);
+      this._drawTwinSkyscrapers(ctx, gx, gy, leftW, gh);
+      this._drawZoomedPendulumChamber(ctx, rightX, gy, rightW, gh);
 
       ctx.restore();
     }
 
     _drawWindStreamlines(ctx, gx, gy, gw, gh) {
+      if (this.excitationMode === 'free-impulse') return;
       ctx.save();
-      const windSpeedMult = this.excitationMode === 'typhoon' ? 2.0 : 1.0;
-      ctx.strokeStyle = this.excitationMode === 'typhoon' ? 'rgba(255, 171, 64, 0.22)' : 'rgba(56, 189, 248, 0.16)';
+      ctx.strokeStyle = this.excitationMode === 'typhoon' ? 'rgba(251, 191, 36, 0.20)' : 'rgba(56, 189, 248, 0.14)';
       ctx.lineWidth = 1.2;
-
       for (const p of this.windParticles) {
         const px = gx + p.x * gw;
         const py = gy + p.y * gh;
         ctx.beginPath();
         ctx.moveTo(px, py);
-        ctx.lineTo(px + p.len * windSpeedMult, py);
+        ctx.lineTo(px + p.len, py);
         ctx.stroke();
       }
       ctx.restore();
     }
 
-    _drawWholeSkyscraper(ctx, gx, gy, gw, gh, groundY) {
+    _drawTwinSkyscrapers(ctx, gx, gy, gw, gh) {
       ctx.save();
 
-      // Tower base coordinate
-      const baseX = gx + gw * 0.52 + (this.excitationMode === 'earthquake' ? this.quakeGroundX * 0.25 : 0);
-      const towerHeight = gh * 0.88;
-      const topY = groundY - towerHeight;
+      const groundY = gy + gh - 20;
+      const groundShift = this.excitationMode === 'earthquake' ? this.groundX * 22 : 0;
 
-      // Cantilever bending deflection: tip moves by this.x1 (scaled to pixels)
-      // Visual scale: 1 meter top sway ~ 38 pixels on full tower view
-      const tipDeflectPx = this.x1 * 38;
+      // Ground Foundation Platform
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(gx + 6, groundY, gw - 12, 18);
+      ctx.strokeStyle = '#334155';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(gx + 6, groundY);
+      ctx.lineTo(gx + gw - 6, groundY);
+      ctx.stroke();
 
-      // Draw background ambient city silhouette
-      ctx.fillStyle = '#08101e';
-      ctx.fillRect(gx + 6, groundY - 22, 28, 22);
-      ctx.fillRect(gx + 38, groundY - 34, 32, 34);
-      ctx.fillRect(gx + gw - 42, groundY - 28, 36, 28);
+      // Two Towers:
+      // Tower A (Left, 26% of gw): FĂRĂ TMD (Red alert)
+      // Tower B (Right, 72% of gw): CU TMD 660t (Cyan/Gold)
+      const towerAX = gx + gw * 0.27 + groundShift;
+      const towerBX = gx + gw * 0.73 + groundShift;
+      const totalTowerH = Math.max(80, gh - 42);
 
-      // Taipei 101 distinctive silhouette:
-      // Base podium + 8 inverted trapezoid pagoda segments + crown + spire
-      const numSegments = 8;
-      const segH = (towerHeight * 0.68) / numSegments;
-      const basePodiumH = towerHeight * 0.14;
-      const crownH = towerHeight * 0.18;
+      // Draw Tower A (Fără TMD)
+      this._drawSingleTaipeiTower(
+        ctx,
+        towerAX,
+        groundY,
+        totalTowerH,
+        gw * 0.22,
+        this.x0,
+        null,
+        '#ff5252',
+        'FĂRĂ TMD (1-DOF)'
+      );
 
-      ctx.lineWidth = 1.2;
+      // Draw Tower B (Taipei 101 cu TMD)
+      this._drawSingleTaipeiTower(
+        ctx,
+        towerBX,
+        groundY,
+        totalTowerH,
+        gw * 0.22,
+        this.x1,
+        this.x2,
+        this.tmdActive ? '#00e5ff' : '#ff5252',
+        this.tmdActive ? 'CU TMD (660 t)' : 'TMD BLOCAT'
+      );
 
-      // Draw cantilever segmented tower
-      for (let s = 0; s < numSegments; s++) {
-        const segBottomNorm = (basePodiumH + s * segH) / towerHeight;
-        const segTopNorm = (basePodiumH + (s + 1) * segH) / towerHeight;
+      // Draw dashed zoom callout lines from Tower B's 87-92F chamber to the right cutaway panel
+      const chamberTopY = groundY - totalTowerH * 0.78;
+      const chamberBotY = groundY - totalTowerH * 0.67;
+      const tipShiftB = this.x1 * 26;
+      const chamberShiftB = tipShiftB * Math.pow(0.72, 2);
 
-        // Quadratic bending profile: y(h) = (h/H)^2
-        const deflBot = tipDeflectPx * Math.pow(segBottomNorm, 2);
-        const deflTop = tipDeflectPx * Math.pow(segTopNorm, 2);
+      ctx.strokeStyle = 'rgba(251, 191, 36, 0.35)';
+      ctx.setLineDash([3, 3]);
+      ctx.lineWidth = 1.0;
+      ctx.beginPath();
+      ctx.moveTo(towerBX + chamberShiftB + 14, chamberTopY);
+      ctx.lineTo(gx + gw - 2, gy + 12);
+      ctx.moveTo(towerBX + chamberShiftB + 14, chamberBotY);
+      ctx.lineTo(gx + gw - 2, gy + gh - 12);
+      ctx.stroke();
+      ctx.setLineDash([]);
 
-        const yBot = groundY - (basePodiumH + s * segH);
-        const yTop = groundY - (basePodiumH + (s + 1) * segH);
+      ctx.restore();
+    }
 
-        // Pagoda inverted flared trapezoid shape
-        const wBot = Math.max(14, gw * 0.18 - s * 1.0);
-        const wTop = wBot + 6;
+    _drawSingleTaipeiTower(ctx, baseX, groundY, totalH, maxW, tipMeters, ballMeters, accentColor, bottomLabel) {
+      ctx.save();
+
+      // Continuous height breakdown (sums to 1.00 * totalH — NO FLOATING GAPS!):
+      // 1. Base Podium: 0.00 -> 0.16 of totalH
+      // 2. 8 Pagoda Tiers: 0.16 -> 0.80 of totalH (each tier is 0.08 of totalH)
+      // 3. Crown Pedestal: 0.80 -> 0.88 of totalH
+      // 4. Spire Antenna: 0.88 -> 1.00 of totalH
+      const maxSwayPx = tipMeters * 26;
+      const deflectAt = (uNorm) => maxSwayPx * (uNorm * uNorm);
+
+      const wBase = Math.max(24, Math.min(44, maxW));
+
+      // Vertical reference center line
+      ctx.strokeStyle = 'rgba(148, 163, 184, 0.18)';
+      ctx.setLineDash([2, 3]);
+      ctx.beginPath();
+      ctx.moveTo(baseX, groundY);
+      ctx.lineTo(baseX, groundY - totalH - 6);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      // 1. Base Podium (0.00 -> 0.16)
+      const uPodTop = 0.16;
+      const yPodTop = groundY - uPodTop * totalH;
+      const dPodTop = deflectAt(uPodTop);
+      const wPodBot = wBase * 1.05;
+      const wPodTop = wBase * 0.76;
+
+      ctx.fillStyle = '#162238';
+      ctx.strokeStyle = accentColor + '99';
+      ctx.lineWidth = 1.3;
+      ctx.beginPath();
+      ctx.moveTo(baseX - wPodBot * 0.5, groundY);
+      ctx.lineTo(baseX + wPodBot * 0.5, groundY);
+      ctx.lineTo(baseX + dPodTop + wPodTop * 0.5, yPodTop);
+      ctx.lineTo(baseX + dPodTop - wPodTop * 0.5, yPodTop);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+
+      // 2. 8 Contiguous Pagoda Segments (0.16 -> 0.80)
+      const numTiers = 8;
+      const tierUNorm = 0.64 / numTiers; // 0.08 each
+
+      for (let i = 0; i < numTiers; i++) {
+        const uBot = 0.16 + i * tierUNorm;
+        const uTop = uBot + tierUNorm;
+        const yBot = groundY - uBot * totalH;
+        const yTop = groundY - uTop * totalH;
+        const dBot = deflectAt(uBot);
+        const dTop = deflectAt(uTop);
+
+        const taper = 1 - i * 0.035;
+        const wBot = wBase * 0.68 * taper;
+        const wTop = wBase * 0.84 * taper; // Flared pagoda roof
+
+        const isDamperTier = (ballMeters !== null && (i === 6 || i === 7));
 
         ctx.beginPath();
-        ctx.moveTo(baseX + deflBot - wBot / 2, yBot);
-        ctx.lineTo(baseX + deflBot + wBot / 2, yBot);
-        ctx.lineTo(baseX + deflTop + wTop / 2, yTop);
-        ctx.lineTo(baseX + deflTop - wTop / 2, yTop);
+        ctx.moveTo(baseX + dBot - wBot * 0.5, yBot);
+        ctx.lineTo(baseX + dBot + wBot * 0.5, yBot);
+        ctx.lineTo(baseX + dTop + wTop * 0.5, yTop);
+        ctx.lineTo(baseX + dTop - wTop * 0.5, yTop);
         ctx.closePath();
 
-        // Highlighting segment 8 (levels 87-92 where the TMD is housed)
-        if (s === 6 || s === 7) {
+        if (isDamperTier) {
           ctx.fillStyle = 'rgba(251, 191, 36, 0.22)';
           ctx.strokeStyle = '#fbbf24';
         } else {
-          ctx.fillStyle = 'rgba(15, 23, 42, 0.85)';
-          ctx.strokeStyle = '#38bdf866';
+          ctx.fillStyle = '#0f1b2d';
+          ctx.strokeStyle = accentColor + '88';
         }
         ctx.fill();
         ctx.stroke();
 
-        // Horizontal architectural accents
-        ctx.strokeStyle = '#38bdf833';
+        // Subtle horizontal floor window strip inside tier
+        if (!isDamperTier) {
+          const yMid = (yBot + yTop) * 0.5;
+          const dMid = (dBot + dTop) * 0.5;
+          const wMid = (wBot + wTop) * 0.36;
+          ctx.strokeStyle = accentColor + '33';
+          ctx.beginPath();
+          ctx.moveTo(baseX + dMid - wMid, yMid);
+          ctx.lineTo(baseX + dMid + wMid, yMid);
+          ctx.stroke();
+        }
+      }
+
+      // If this is Tower B, draw the mini golden pendulum inside Tiers 6-7!
+      if (ballMeters !== null) {
+        const uBall = 0.72;
+        const yBall = groundY - uBall * totalH;
+        const dTowerAtBall = deflectAt(uBall);
+        const relBallPx = Math.max(-9, Math.min(9, (ballMeters - tipMeters) * 14));
+        const bx = baseX + dTowerAtBall + relBallPx;
+
+        // Suspension line from top of tier 8
+        const yAnchor = groundY - 0.80 * totalH;
+        const dAnchor = deflectAt(0.80);
+        ctx.strokeStyle = '#fef08a';
+        ctx.lineWidth = 1.0;
         ctx.beginPath();
-        ctx.moveTo(baseX + deflTop - wTop / 2, yTop + segH * 0.5);
-        ctx.lineTo(baseX + deflTop + wTop / 2, yTop + segH * 0.5);
+        ctx.moveTo(baseX + dAnchor, yAnchor);
+        ctx.lineTo(bx, yBall);
         ctx.stroke();
-      }
 
-      // Base Podium
-      ctx.beginPath();
-      ctx.moveTo(baseX - gw * 0.14, groundY);
-      ctx.lineTo(baseX + gw * 0.14, groundY);
-      ctx.lineTo(baseX + gw * 0.10, groundY - basePodiumH);
-      ctx.lineTo(baseX - gw * 0.10, groundY - basePodiumH);
-      ctx.closePath();
-      ctx.fillStyle = '#1e293b';
-      ctx.strokeStyle = '#38bdf888';
-      ctx.fill();
-      ctx.stroke();
-
-      // Top Crown & Spire Antenna
-      const deflTop = tipDeflectPx;
-      const spireTopY = topY - crownH;
-      ctx.beginPath();
-      ctx.moveTo(baseX + deflTop - 7, topY);
-      ctx.lineTo(baseX + deflTop + 7, topY);
-      ctx.lineTo(baseX + deflTop + 2, topY - crownH * 0.4);
-      ctx.lineTo(baseX + deflTop - 2, topY - crownH * 0.4);
-      ctx.closePath();
-      ctx.fillStyle = '#38bdf8';
-      ctx.fill();
-
-      // Needle spire antenna with red beacon light
-      ctx.strokeStyle = '#e2e8f0';
-      ctx.lineWidth = 1.5;
-      ctx.beginPath();
-      ctx.moveTo(baseX + deflTop, topY - crownH * 0.4);
-      ctx.lineTo(baseX + deflTop, spireTopY);
-      ctx.stroke();
-
-      // Red flashing beacon
-      ctx.fillStyle = (Math.sin(this.extPhase * 3) > 0) ? '#ff1744' : '#ff8a80';
-      ctx.beginPath();
-      ctx.arc(baseX + deflTop, spireTopY, 2.5, 0, 2 * Math.PI);
-      ctx.fill();
-
-      // Micro golden sphere visible in 87th-92nd floor of silhouette
-      const tmdFloorY = groundY - (basePodiumH + 6.5 * segH);
-      const deflTmd = tipDeflectPx * Math.pow(6.5 / 8, 2);
-      ctx.fillStyle = '#fbbf24';
-      ctx.beginPath();
-      ctx.arc(baseX + deflTmd + (this.x2 - this.x1) * 16, tmdFloorY, 3.5, 0, 2 * Math.PI);
-      ctx.fill();
-
-      // Label below tower
-      ctx.font = 'bold 9.5px Inter, sans-serif';
-      ctx.fillStyle = '#94a3b8';
-      ctx.textAlign = 'center';
-      ctx.fillText('TAIPEI 101 (508 m)', baseX, groundY - 6);
-
-      ctx.restore();
-    }
-
-    _drawCutawaySphereChamber(ctx, cx, cy, cw, ch) {
-      ctx.save();
-
-      // Frame background of the cutaway chamber
-      const margin = 10;
-      const innerX = cx + margin;
-      const innerY = cy + margin;
-      const innerW = cw - margin * 2;
-      const innerH = ch - margin * 2;
-
-      ctx.fillStyle = 'rgba(10, 18, 36, 0.92)';
-      ctx.strokeStyle = '#38bdf844';
-      ctx.lineWidth = 1.5;
-      ctx.beginPath();
-      if (typeof ctx.roundRect === 'function') {
-        ctx.roundRect(innerX, innerY, innerW, innerH, 8);
-      } else {
-        ctx.rect(innerX, innerY, innerW, innerH);
-      }
-      ctx.fill();
-      ctx.stroke();
-
-      // Title header of chamber cutaway
-      ctx.font = 'bold 10px Inter, sans-serif';
-      ctx.fillStyle = '#38bdf8';
-      ctx.textAlign = 'left';
-      ctx.fillText('CAMERA PENDULULUI (ETAJELE 87 - 92)', innerX + 12, innerY + 16);
-
-      ctx.font = '8.5px Inter, sans-serif';
-      ctx.fillStyle = '#94a3b8';
-      ctx.fillText('8 cabluri de oțel (42 mm) + 8 amortizoare hidraulice radiale', innerX + 12, innerY + 28);
-
-      // Coordinates within cutaway chamber:
-      // The chamber structure itself sways with the skyscraper tip deflection x1!
-      // In local pixels:
-      const chamberMidX = innerX + innerW * 0.50;
-      const chamberCeilY = innerY + 40;
-      const chamberFloorY = innerY + innerH - 24;
-
-      // Building top sway shifts the chamber cradle:
-      const bShiftPx = this.x1 * 32;
-      // Pendulum sphere sway (absolute displacement x2)
-      const pShiftPx = this.x2 * 32;
-
-      const sphereCenterY = chamberCeilY + (chamberFloorY - chamberCeilY) * 0.58;
-      const sphereCenterX = chamberMidX + pShiftPx;
-      const sphereRadius = Math.max(16, Math.min(32, innerW * 0.085));
-
-      // Store screen position for mouse/touch hit testing
-      this.sphereScreenPos = {
-        x: sphereCenterX,
-        y: sphereCenterY,
-        r: sphereRadius
-      };
-
-      // Draw Chamber Upper Ring Anchor Points (8 steel cable suspension points)
-      const anchorW = innerW * 0.42;
-      ctx.strokeStyle = '#64748b';
-      ctx.lineWidth = 2.0;
-      ctx.beginPath();
-      ctx.moveTo(chamberMidX + bShiftPx - anchorW / 2, chamberCeilY);
-      ctx.lineTo(chamberMidX + bShiftPx + anchorW / 2, chamberCeilY);
-      ctx.stroke();
-
-      // Draw 8 Steel Suspension Cables from ceiling anchor to sphere top
-      const numCables = 6;
-      ctx.strokeStyle = 'rgba(203, 213, 225, 0.75)';
-      ctx.lineWidth = 1.4;
-      for (let i = 0; i < numCables; i++) {
-        const u = (i / (numCables - 1)) - 0.5;
-        const anchorX = chamberMidX + bShiftPx + u * anchorW;
-        const ballAttachX = sphereCenterX + u * (sphereRadius * 0.7);
+        ctx.fillStyle = '#fbbf24';
         ctx.beginPath();
-        ctx.moveTo(anchorX, chamberCeilY);
-        ctx.lineTo(ballAttachX, sphereCenterY - sphereRadius * 0.85);
-        ctx.stroke();
-      }
-
-      // Draw Chamber Floor & Circular Tourist Observation Balcony
-      ctx.fillStyle = '#1e293b';
-      ctx.fillRect(innerX + 8, chamberFloorY, innerW - 16, innerH - (chamberFloorY - innerY) - 4);
-      ctx.strokeStyle = '#475569';
-      ctx.lineWidth = 1.0;
-      ctx.beginPath();
-      ctx.moveTo(innerX + 8, chamberFloorY);
-      ctx.lineTo(innerX + innerW - 8, chamberFloorY);
-      ctx.stroke();
-
-      // Tourist Balcony Guardrail
-      ctx.strokeStyle = 'rgba(56, 189, 248, 0.35)';
-      ctx.beginPath();
-      ctx.moveTo(innerX + 16, chamberFloorY - 14);
-      ctx.lineTo(innerX + innerW - 16, chamberFloorY - 14);
-      ctx.stroke();
-
-      // Draw 8 Hydraulic Viscous Dampers connected between sphere bottom and cradle
-      // Left damper and Right damper
-      const cradleLeftX = chamberMidX + bShiftPx - innerW * 0.34;
-      const cradleRightX = chamberMidX + bShiftPx + innerW * 0.34;
-      const damperBaseY = chamberFloorY - 4;
-
-      this._drawHydraulicPiston(ctx, cradleLeftX, damperBaseY, sphereCenterX - sphereRadius * 0.5, sphereCenterY + sphereRadius * 0.7, '#38bdf8');
-      this._drawHydraulicPiston(ctx, cradleRightX, damperBaseY, sphereCenterX + sphereRadius * 0.5, sphereCenterY + sphereRadius * 0.7, '#38bdf8');
-
-      // Draw Giant Golden 660-Tonne Sphere
-      this._drawGoldenSphere(ctx, sphereCenterX, sphereCenterY, sphereRadius);
-
-      // Deflection relative text badge on sphere
-      const relCm = ((this.x2 - this.x1) * 100).toFixed(0);
-      ctx.font = 'bold 8.5px Inter, sans-serif';
-      ctx.fillStyle = '#0f172a';
-      ctx.textAlign = 'center';
-      ctx.fillText(`${relCm > 0 ? '+' : ''}${relCm} cm`, sphereCenterX, sphereCenterY + 3);
-
-      // Hydraulic Damping Energy Glow / Sparkles when active
-      if (this.tmdActive && Math.abs(this.v2 - this.v1) > 0.08) {
-        ctx.fillStyle = 'rgba(0, 229, 255, 0.45)';
-        ctx.beginPath();
-        ctx.arc(cradleLeftX + (sphereCenterX - cradleLeftX) * 0.5, damperBaseY - 10, 3, 0, 2 * Math.PI);
-        ctx.arc(cradleRightX + (sphereCenterX - cradleRightX) * 0.5, damperBaseY - 10, 3, 0, 2 * Math.PI);
+        ctx.arc(bx, yBall, 3.8, 0, 2 * Math.PI);
         ctx.fill();
       }
 
+      // 3. Crown Pedestal (0.80 -> 0.88, directly touching top of Tier 8!)
+      const uCrownBot = 0.80;
+      const uCrownTop = 0.88;
+      const yCrownBot = groundY - uCrownBot * totalH;
+      const yCrownTop = groundY - uCrownTop * totalH;
+      const dCrownBot = deflectAt(uCrownBot);
+      const dCrownTop = deflectAt(uCrownTop);
+      const wCrownBot = wBase * 0.44;
+      const wCrownTop = wBase * 0.20;
+
+      ctx.fillStyle = '#1e293b';
+      ctx.strokeStyle = accentColor;
+      ctx.lineWidth = 1.3;
+      ctx.beginPath();
+      ctx.moveTo(baseX + dCrownBot - wCrownBot * 0.5, yCrownBot);
+      ctx.lineTo(baseX + dCrownBot + wCrownBot * 0.5, yCrownBot);
+      ctx.lineTo(baseX + dCrownTop + wCrownTop * 0.5, yCrownTop);
+      ctx.lineTo(baseX + dCrownTop - wCrownTop * 0.5, yCrownTop);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+
+      // 4. Spire Antenna (0.88 -> 1.00, directly mounted on Crown Pedestal!)
+      const ySpireTop = groundY - totalH;
+      const dSpireTop = deflectAt(1.00);
+      ctx.strokeStyle = '#e2e8f0';
+      ctx.lineWidth = 1.8;
+      ctx.beginPath();
+      ctx.moveTo(baseX + dCrownTop, yCrownTop);
+      ctx.lineTo(baseX + dSpireTop, ySpireTop);
+      ctx.stroke();
+
+      // Spire beacon dot
+      ctx.fillStyle = accentColor;
+      ctx.beginPath();
+      ctx.arc(baseX + dSpireTop, ySpireTop, 2.8, 0, 2 * Math.PI);
+      ctx.fill();
+
+      // Deflection readout above spire
+      const swayCm = Math.round(tipMeters * 100);
+      ctx.font = 'bold 9px Inter, sans-serif';
+      ctx.fillStyle = accentColor;
+      ctx.textAlign = 'center';
+      ctx.fillText(`${swayCm >= 0 ? '+' : ''}${swayCm} cm`, baseX + dSpireTop, ySpireTop - 7);
+
+      // Bottom label on foundation
+      ctx.font = 'bold 9px Inter, sans-serif';
+      ctx.fillStyle = accentColor;
+      ctx.fillText(bottomLabel, baseX, groundY + 12);
+
       ctx.restore();
     }
 
-    _drawHydraulicPiston(ctx, x1, y1, x2, y2, color) {
+    // =========================================================================
+    // RIGHT UPPER PANEL: ZOOMED CUTAWAY OF FLOORS 87-92 (660-TONNE PENDULUM)
+    // =========================================================================
+    _drawZoomedPendulumChamber(ctx, gx, gy, gw, gh) {
+      ctx.save();
+
+      const pad = 8;
+      const boxX = gx + pad;
+      const boxY = gy + pad;
+      const boxW = gw - pad * 2;
+      const boxH = gh - pad * 2;
+
+      // Dark architectural blueprint card
+      ctx.fillStyle = 'rgba(10, 19, 36, 0.94)';
+      ctx.strokeStyle = 'rgba(251, 191, 36, 0.45)';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      if (typeof ctx.roundRect === 'function') {
+        ctx.roundRect(boxX, boxY, boxW, boxH, 8);
+      } else {
+        ctx.rect(boxX, boxY, boxW, boxH);
+      }
+      ctx.fill();
+      ctx.stroke();
+
+      // Header
+      ctx.font = 'bold 10px Inter, sans-serif';
+      ctx.fillStyle = '#fbbf24';
+      ctx.textAlign = 'left';
+      ctx.fillText('SECȚIUNE MĂRITĂ: CAMERA PENDULULUI (ETAJELE 87 – 92)', boxX + 12, boxY + 15);
+
+      ctx.font = '8.5px Inter, sans-serif';
+      ctx.fillStyle = '#94a3b8';
+      ctx.fillText('Sferă din 41 plăci de oțel aurit (660 t) + amortizoare hidraulice radiale', boxX + 12, boxY + 27);
+
+      // Chamber interior coordinates:
+      // The structural frame of the chamber moves slightly with building displacement x1
+      const frameCenterX = boxX + boxW * 0.50 + this.x1 * 18;
+      const ceilingY = boxY + 38;
+      const floorY = boxY + boxH - 22;
+      const chamberH = floorY - ceilingY;
+
+      // Draw Building Columns on Left & Right of Chamber (moving with x1)
+      const colSpan = Math.min(boxW * 0.78, 290);
+      const colLeftX = frameCenterX - colSpan * 0.5;
+      const colRightX = frameCenterX + colSpan * 0.5;
+
+      ctx.strokeStyle = '#38bdf866';
+      ctx.lineWidth = 3.0;
+      ctx.beginPath();
+      ctx.moveTo(colLeftX, ceilingY);
+      ctx.lineTo(colLeftX, floorY);
+      ctx.moveTo(colRightX, ceilingY);
+      ctx.lineTo(colRightX, floorY);
+      ctx.stroke();
+
+      // Ceiling girder (Floor 92) & Floor slab (Floor 87)
+      ctx.fillStyle = '#1e293b';
+      ctx.fillRect(colLeftX - 6, ceilingY - 5, colSpan + 12, 6);
+      ctx.fillRect(colLeftX - 6, floorY, colSpan + 12, 8);
+
+      // True Pendulum Kinematics in Cutaway:
+      // Relative displacement u = (x2 - x1)*0.52 determines pendulum angle phi
+      const relMeters = (this.x2 - this.x1) * 0.52;
+      const pendL = Math.max(46, chamberH * 0.52);
+      const sphereR = Math.max(18, Math.min(26, chamberH * 0.18));
+
+      // Swing angle phi (clamped for visual safety)
+      const sinPhi = Math.max(-0.48, Math.min(0.48, (relMeters * 42) / pendL));
+      const phi = Math.asin(sinPhi);
+
+      const pivotX = frameCenterX;
+      const pivotY = ceilingY + 2;
+      const sphereCx = pivotX + pendL * Math.sin(phi);
+      const sphereCy = pivotY + pendL * Math.cos(phi);
+
+      this.sphereHit = {
+        cx: sphereCx,
+        cy: sphereCy,
+        r: sphereR,
+        pivotX: pivotX,
+        pivotY: pivotY,
+        L: pendL
+      };
+
+      // Draw Circular Trajectory Arc Guide
+      ctx.strokeStyle = 'rgba(251, 191, 36, 0.18)';
+      ctx.setLineDash([3, 3]);
+      ctx.lineWidth = 1.0;
+      ctx.beginPath();
+      ctx.arc(pivotX, pivotY, pendL, Math.PI * 0.5 - 0.50, Math.PI * 0.5 + 0.50);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      // Draw Upper Ceiling Mount Bracket (compact realistic cable hanger, NOT a huge wide triangle)
+      const hangerHalfW = sphereR * 0.55;
+      ctx.fillStyle = '#475569';
+      ctx.fillRect(pivotX - hangerHalfW - 4, pivotY - 3, (hangerHalfW + 4) * 2, 5);
+
+      // Draw 4 Parallel Pairs of Steel Cables rotating naturally with the pendulum angle phi!
+      ctx.strokeStyle = '#cbd5e1';
+      ctx.lineWidth = 1.5;
+      const cableOffsets = [-0.48, -0.18, 0.18, 0.48];
+      for (const off of cableOffsets) {
+        const ax = pivotX + off * sphereR;
+        const ay = pivotY + 2;
+        const bx = sphereCx + off * sphereR;
+        const by = sphereCy - Math.sqrt(Math.max(1, sphereR * sphereR - (off * sphereR) ** 2));
+        ctx.beginPath();
+        ctx.moveTo(ax, ay);
+        ctx.lineTo(bx, by);
+        ctx.stroke();
+      }
+
+      // Lower Coupling Pin extending from bottom of sphere to the Hydraulic Damper Cradle
+      const pinBottomX = sphereCx;
+      const pinBottomY = sphereCy + sphereR + 9;
+      ctx.strokeStyle = '#facc15';
+      ctx.lineWidth = 3.5;
+      ctx.beginPath();
+      ctx.moveTo(sphereCx, sphereCy + sphereR - 2);
+      ctx.lineTo(pinBottomX, pinBottomY);
+      ctx.stroke();
+
+      // Horizontal Hydraulic Viscous Damper Cradle Frame (aligned with lower bumper pin)
+      const cradleY = pivotY + pendL + sphereR + 9;
+      const leftAnchorX = colLeftX + 12;
+      const rightAnchorX = colRightX - 12;
+
+      // Support stanchions from Floor 87 up to the Hydraulic Cradle
+      ctx.fillStyle = '#334155';
+      ctx.fillRect(leftAnchorX - 3, cradleY - 5, 6, Math.max(8, floorY - cradleY + 5));
+      ctx.fillRect(rightAnchorX - 3, cradleY - 5, 6, Math.max(8, floorY - cradleY + 5));
+
+      const isDissipating = this.tmdActive && Math.abs(this.v2 - this.v1) > 0.08;
+      const pistonColor = isDissipating ? '#00e5ff' : '#64748b';
+
+      this._drawHydraulicPiston(ctx, leftAnchorX, cradleY, pinBottomX - 4, pinBottomY, pistonColor, isDissipating);
+      this._drawHydraulicPiston(ctx, rightAnchorX, cradleY, pinBottomX + 4, pinBottomY, pistonColor, isDissipating);
+
+      // Draw the Giant 660-Tonne Golden Sphere
+      this._drawGoldenSphere(ctx, sphereCx, sphereCy, sphereR);
+
+      // Relative Stroke Text on Sphere
+      const relCm = Math.round(relMeters * 100);
+      ctx.font = 'bold 9px Inter, sans-serif';
+      ctx.fillStyle = '#0f172a';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(`${relCm >= 0 ? '+' : ''}${relCm} cm`, sphereCx, sphereCy);
+
+      // Draw Opposing Force Vectors above/below sphere to explain the physics!
+      // 1. External Wind/Seismic Force on Building (Red)
+      const fWindPx = this.currentExtForce * 34;
+      if (Math.abs(fWindPx) > 3) {
+        this._drawForceVector(
+          ctx,
+          frameCenterX,
+          ceilingY + 14,
+          frameCenterX + fWindPx,
+          ceilingY + 14,
+          '#ff5252',
+          'F_excit'
+        );
+      }
+
+      // 2. TMD Restoring Counter-Force on Building (Cyan)
+      if (this.tmdActive) {
+        const fTmdPx = this.currentTmdForce * 42;
+        if (Math.abs(fTmdPx) > 3) {
+          this._drawForceVector(
+            ctx,
+            sphereCx,
+            sphereCy - sphereR - 10,
+            sphereCx + fTmdPx,
+            sphereCy - sphereR - 10,
+            '#00e5ff',
+            'F_TMD (Opusă)'
+          );
+        }
+      }
+
+      // Power dissipation badge at bottom of chamber
+      ctx.font = 'bold 8.5px Inter, sans-serif';
+      ctx.fillStyle = this.tmdActive ? '#34d399' : '#f87171';
+      ctx.textAlign = 'center';
+      ctx.fillText(
+        this.tmdActive
+          ? `⚡ Putere disipată în amortizoarele hidraulice: ${this.dissipatedPowerKw.toFixed(0)} kW`
+          : '🔒 Amortizoare blocate (0 kW disipați)',
+        boxX + boxW * 0.5,
+        boxY + boxH - 7
+      );
+
+      ctx.restore();
+    }
+
+    _drawHydraulicPiston(ctx, x1, y1, x2, y2, color, glowing) {
       ctx.save();
       const dx = x2 - x1;
       const dy = y2 - y1;
       const len = Math.hypot(dx, dy);
+      if (len < 4) {
+        ctx.restore();
+        return;
+      }
       const ang = Math.atan2(dy, dx);
 
       ctx.translate(x1, y1);
       ctx.rotate(ang);
 
-      // Cylinder body (outer barrel)
-      const cylLen = len * 0.55;
-      ctx.fillStyle = '#334155';
-      ctx.fillRect(0, -4.5, cylLen, 9);
+      const cylLen = len * 0.52;
+      // Piston rod
+      ctx.strokeStyle = '#cbd5e1';
+      ctx.lineWidth = 3.0;
+      ctx.beginPath();
+      ctx.moveTo(cylLen, 0);
+      ctx.lineTo(len, 0);
+      ctx.stroke();
+
+      // Hydraulic cylinder barrel
+      ctx.fillStyle = glowing ? 'rgba(0, 229, 255, 0.25)' : '#1e293b';
       ctx.strokeStyle = color;
-      ctx.lineWidth = 1.2;
+      ctx.lineWidth = 1.4;
+      ctx.fillRect(0, -4.5, cylLen, 9);
       ctx.strokeRect(0, -4.5, cylLen, 9);
 
-      // Piston rod (inner sliding chrome bar)
-      ctx.fillStyle = '#cbd5e1';
-      ctx.fillRect(cylLen - 2, -2.5, len - cylLen + 2, 5);
-
-      // Pin attachments
-      ctx.fillStyle = '#94a3b8';
+      // End joints
+      ctx.fillStyle = color;
       ctx.beginPath();
-      ctx.arc(0, 0, 3.5, 0, 2 * Math.PI);
-      ctx.arc(len, 0, 3.5, 0, 2 * Math.PI);
+      ctx.arc(0, 0, 3, 0, 2 * Math.PI);
+      ctx.arc(len, 0, 3, 0, 2 * Math.PI);
       ctx.fill();
 
       ctx.restore();
@@ -876,76 +1095,88 @@
     _drawGoldenSphere(ctx, cx, cy, r) {
       ctx.save();
 
-      // Shadow behind ball
-      ctx.beginPath();
-      ctx.arc(cx + 4, cy + 4, r, 0, 2 * Math.PI);
+      // Drop shadow
       ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
+      ctx.beginPath();
+      ctx.arc(cx + 3, cy + 4, r, 0, 2 * Math.PI);
       ctx.fill();
 
-      // Radial metallic golden gradient
+      // Metallic gold gradient
       const grad = ctx.createRadialGradient(cx - r * 0.35, cy - r * 0.35, r * 0.1, cx, cy, r);
-      grad.addColorStop(0, '#fef08a');
+      grad.addColorStop(0, '#fef9c3');
       grad.addColorStop(0.35, '#facc15');
       grad.addColorStop(0.75, '#ca8a04');
-      grad.addColorStop(1, '#854d0e');
+      grad.addColorStop(1, '#713f12');
 
+      ctx.fillStyle = grad;
+      ctx.strokeStyle = '#fef08a';
+      ctx.lineWidth = 1.5;
       ctx.beginPath();
       ctx.arc(cx, cy, r, 0, 2 * Math.PI);
-      ctx.fillStyle = grad;
       ctx.fill();
-      ctx.strokeStyle = '#fef08a88';
-      ctx.lineWidth = 1.5;
       ctx.stroke();
 
-      // Authentic Taipei 101 sphere circular layered plate rings (41 circular steel plates)
-      ctx.strokeStyle = 'rgba(113, 63, 18, 0.45)';
-      ctx.lineWidth = 0.8;
-      const numPlates = 7;
-      for (let p = 1; p < numPlates; p++) {
-        const py = cy - r + (p / numPlates) * (2 * r);
-        const wHalf = Math.sqrt(Math.max(0, r * r - (py - cy) * (py - cy)));
+      // Stacked horizontal steel plate rings (41 discs of Taipei 101 sphere)
+      ctx.strokeStyle = 'rgba(113, 63, 18, 0.42)';
+      ctx.lineWidth = 0.85;
+      for (let i = 1; i <= 5; i++) {
+        const py = cy - r + (i / 6) * (2 * r);
+        const halfChord = Math.sqrt(Math.max(0, r * r - (py - cy) ** 2));
         ctx.beginPath();
-        ctx.moveTo(cx - wHalf, py);
-        ctx.lineTo(cx + wHalf, py);
+        ctx.moveTo(cx - halfChord, py);
+        ctx.lineTo(cx + halfChord, py);
         ctx.stroke();
       }
-
-      // Specular highlight glint
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.65)';
-      ctx.beginPath();
-      ctx.arc(cx - r * 0.36, cy - r * 0.36, r * 0.22, 0, 2 * Math.PI);
-      ctx.fill();
 
       ctx.restore();
     }
 
+    _drawForceVector(ctx, x1, y1, x2, y2, color, label) {
+      const dx = x2 - x1;
+      const dir = dx >= 0 ? 1 : -1;
+      ctx.save();
+      ctx.strokeStyle = color;
+      ctx.fillStyle = color;
+      ctx.lineWidth = 2.0;
+      ctx.beginPath();
+      ctx.moveTo(x1, y1);
+      ctx.lineTo(x2, y2);
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.moveTo(x2, y2);
+      ctx.lineTo(x2 - dir * 6, y2 - 3.5);
+      ctx.lineTo(x2 - dir * 6, y2 + 3.5);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.font = 'bold 8px Inter, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(label, (x1 + x2) * 0.5, y1 - 5);
+      ctx.restore();
+    }
+
     // =========================================================================
-    // LOWER PANEL: FRF BODE PLOT & LIVE ENERGY TELEMETRY
+    // LOWER PANEL: LEFT = INTERACTIVE BODE FRF, RIGHT = COMPARATIVE WAVEFORMS
     // =========================================================================
-    _drawLowerDashboard(ctx, gx, gy, gw, gh) {
+    _drawLowerGraphs(ctx, gx, gy, gw, gh) {
       ctx.save();
       ctx.beginPath();
       ctx.rect(gx, gy, gw, gh);
       ctx.clip();
 
-      const isNarrow = gw < 580;
-      const splitW = isNarrow ? gw : gw * 0.55;
+      const leftW = gw * 0.50;
+      const rightW = gw - leftW;
 
-      // Sub-Panel 1: Dynamic Amplification FRF Curve (Left)
-      this._drawFRFBodePlot(ctx, gx + 8, gy + 4, splitW - 14, gh - 8);
-
-      // Sub-Panel 2: Real-time Waveforms & Den Hartog Telemetry (Right)
-      if (!isNarrow) {
-        this._drawTelemetryAndWaveforms(ctx, gx + splitW + 4, gy + 4, gw - splitW - 12, gh - 8);
-      }
+      this._drawInteractiveBodePlot(ctx, gx + 8, gy + 4, leftW - 12, gh - 8);
+      this._drawComparativeWaveforms(ctx, gx + leftW + 2, gy + 4, rightW - 10, gh - 8);
 
       ctx.restore();
     }
 
-    _drawFRFBodePlot(ctx, x, y, w, h) {
+    _drawInteractiveBodePlot(ctx, x, y, w, h) {
       ctx.save();
 
-      // Box container
       ctx.fillStyle = 'rgba(11, 20, 38, 0.94)';
       ctx.strokeStyle = '#1e293b';
       ctx.lineWidth = 1.0;
@@ -958,131 +1189,123 @@
       ctx.fill();
       ctx.stroke();
 
-      // Title & Legend
       ctx.font = 'bold 9.5px Inter, sans-serif';
       ctx.fillStyle = '#38bdf8';
       ctx.textAlign = 'left';
-      ctx.fillText('RĂSPUNS ÎN FRECVENȚĂ |H(ω)| (AMPLIFICARE DINAMICĂ)', x + 8, y + 14);
+      ctx.fillText('CURBA DE RĂSPUNS |H(ω)| — DESPICAREA REZONANȚEI (CLICK)', x + 10, y + 14);
 
-      // Legend items
       ctx.font = '8px Inter, sans-serif';
       ctx.fillStyle = '#ff5252';
-      ctx.fillText('■ Fără TMD (Q ≈ 42)', x + 8, y + 26);
+      ctx.fillText('■ Fără TMD (Q ≈ 33)', x + 10, y + 25);
       ctx.fillStyle = '#00e5ff';
-      ctx.fillText('■ Cu TMD Den Hartog (Atenuat)', x + 105, y + 26);
+      ctx.fillText('■ Cu TMD Den Hartog (Atenuat -78%)', x + 105, y + 25);
 
-      // Plotting area
-      const plotX = x + 34;
-      const plotY = y + 34;
-      const plotW = w - 44;
-      const plotH = h - 50;
-
-      if (plotW < 20 || plotH < 20) {
+      const plotX = x + 28;
+      const plotY = y + 32;
+      const plotW = w - 38;
+      const plotH = h - 46;
+      if (plotW < 20 || plotH < 15) {
         ctx.restore();
         return;
       }
 
+      this.bodeRect = { x: plotX, y: plotY, w: plotW, h: plotH };
+
       // Grid lines
-      ctx.strokeStyle = 'rgba(51, 65, 85, 0.35)';
+      ctx.strokeStyle = 'rgba(51, 65, 85, 0.4)';
       ctx.lineWidth = 0.8;
-      for (let i = 0; i <= 4; i++) {
-        const gyLine = plotY + (i / 4) * plotH;
+      for (let i = 0; i <= 3; i++) {
+        const ly = plotY + (i / 3) * plotH;
         ctx.beginPath();
-        ctx.moveTo(plotX, gyLine);
-        ctx.lineTo(plotX + plotW, gyLine);
+        ctx.moveTo(plotX, ly);
+        ctx.lineTo(plotX + plotW, ly);
         ctx.stroke();
       }
 
-      // Axis labels
-      ctx.font = '8px Inter, sans-serif';
-      ctx.fillStyle = '#64748b';
-      ctx.textAlign = 'right';
-      ctx.fillText('40', plotX - 4, plotY + 6);
-      ctx.fillText('20', plotX - 4, plotY + plotH * 0.5);
-      ctx.fillText('0', plotX - 4, plotY + plotH);
+      const rMin = 0.50;
+      const rMax = 1.50;
+      const maxH = 36.0;
 
-      // Frequency domain: r in [0.5, 1.5]
-      const rMin = 0.5;
-      const rMax = 1.5;
-      const maxHVal = 44.0;
-
-      // Helper: compute steady-state 2-DOF magnification |H(r)|
-      const calcH = (r, mu, f, z1, z2) => {
-        // Den Hartog 2-DOF analytical formula:
-        // H(r) = sqrt( (f^2 - r^2)^2 + (2*z2*f*r)^2 ) / sqrt( delta_real^2 + delta_imag^2 )
-        const num = Math.hypot((f * f - r * r), 2 * z2 * f * r);
-        const term1 = (1 - r * r) * (f * f - r * r) - mu * f * f * r * r - 4 * z1 * z2 * f * r * r;
-        const term2 = 2 * z2 * f * r * (1 - r * r - mu * r * r) + 2 * z1 * r * (f * f - r * r);
-        const denom = Math.hypot(term1, term2);
-        return num / Math.max(0.001, denom);
+      const calcH2DOF = (r, mu, f, z1, z2) => {
+        const num = Math.hypot(f * f - r * r, 2 * z2 * f * r);
+        const t1 = (1 - r * r) * (f * f - r * r) - mu * f * f * r * r - 4 * z1 * z2 * f * r * r;
+        const t2 = 2 * z2 * f * r * (1 - r * r - mu * r * r) + 2 * z1 * r * (f * f - r * r);
+        return num / Math.max(0.001, Math.hypot(t1, t2));
       };
 
-      // 1. Draw Red Dashed Curve: Fără TMD (Single 1-DOF peak)
+      const steps = 90;
+
+      // 1. Unprotected 1-DOF Curve (Red Dashed)
       ctx.strokeStyle = '#ff5252';
       ctx.lineWidth = 1.5;
       ctx.setLineDash([3, 2]);
       ctx.beginPath();
-      const steps = 80;
       for (let s = 0; s <= steps; s++) {
         const r = rMin + (s / steps) * (rMax - rMin);
-        // Single DOF: 1 / sqrt( (1 - r^2)^2 + (2*zeta1*r)^2 )
-        const hVal = 1 / Math.hypot(1 - r * r, 2 * this.zeta1 * r);
+        const h1 = 1 / Math.hypot(1 - r * r, 2 * this.zeta1 * r);
         const px = plotX + ((r - rMin) / (rMax - rMin)) * plotW;
-        const py = plotY + plotH - (Math.min(hVal, maxHVal) / maxHVal) * plotH;
+        const py = plotY + plotH - (Math.min(h1, maxH) / maxH) * plotH;
         if (s === 0) ctx.moveTo(px, py);
         else ctx.lineTo(px, py);
       }
       ctx.stroke();
       ctx.setLineDash([]);
 
-      // 2. Draw Cyan Curve: Cu TMD Den Hartog (Twin flattened side peaks)
+      // 2. Protected 2-DOF TMD Curve (Cyan Solid)
       ctx.strokeStyle = '#00e5ff';
       ctx.lineWidth = 2.0;
       ctx.beginPath();
       for (let s = 0; s <= steps; s++) {
         const r = rMin + (s / steps) * (rMax - rMin);
-        const fOpt = 1 / (1 + this.massRatio);
-        const zOpt = Math.sqrt((3 * this.massRatio) / (8 * (1 + this.massRatio)));
-        const hVal = calcH(r, this.massRatio, fOpt, this.zeta1, zOpt);
+        const h2 = calcH2DOF(r, this.massRatio, this.tuningRatio, this.zeta1, this.zeta2);
         const px = plotX + ((r - rMin) / (rMax - rMin)) * plotW;
-        const py = plotY + plotH - (Math.min(hVal, maxHVal) / maxHVal) * plotH;
+        const py = plotY + plotH - (Math.min(h2, maxH) / maxH) * plotH;
         if (s === 0) ctx.moveTo(px, py);
         else ctx.lineTo(px, py);
       }
       ctx.stroke();
 
-      // 3. Current Operating Excitation Point Dot
-      const currentR = this.freqRatio;
-      const currentH = this.tmdActive
-        ? calcH(currentR, this.massRatio, this.tuningRatio, this.zeta1, this.zeta2)
-        : (1 / Math.hypot(1 - currentR * currentR, 2 * this.zeta1 * currentR));
+      // Current frequency vertical cursor line & both operating dots
+      const curX = plotX + ((this.freqRatio - rMin) / (rMax - rMin)) * plotW;
+      const curH1 = 1 / Math.hypot(1 - this.freqRatio ** 2, 2 * this.zeta1 * this.freqRatio);
+      const curH2 = this.tmdActive
+        ? calcH2DOF(this.freqRatio, this.massRatio, this.tuningRatio, this.zeta1, this.zeta2)
+        : curH1;
 
-      const dotX = plotX + ((currentR - rMin) / (rMax - rMin)) * plotW;
-      const dotY = plotY + plotH - (Math.min(currentH, maxHVal) / maxHVal) * plotH;
+      const py1 = plotY + plotH - (Math.min(curH1, maxH) / maxH) * plotH;
+      const py2 = plotY + plotH - (Math.min(curH2, maxH) / maxH) * plotH;
 
-      ctx.fillStyle = this.tmdActive ? '#00e5ff' : '#ff1744';
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.25)';
       ctx.beginPath();
-      ctx.arc(dotX, dotY, 4.5, 0, 2 * Math.PI);
-      ctx.fill();
-      ctx.strokeStyle = '#ffffff';
-      ctx.lineWidth = 1.2;
+      ctx.moveTo(curX, plotY);
+      ctx.lineTo(curX, plotY + plotH);
       ctx.stroke();
 
-      // Operating ratio text on bottom axis
+      // Red dot (Fără TMD)
+      ctx.fillStyle = '#ff5252';
+      ctx.beginPath();
+      ctx.arc(curX, py1, 4, 0, 2 * Math.PI);
+      ctx.fill();
+
+      // Cyan dot (Cu TMD)
+      ctx.fillStyle = '#00e5ff';
+      ctx.beginPath();
+      ctx.arc(curX, py2, 4.5, 0, 2 * Math.PI);
+      ctx.fill();
+
       ctx.font = '8px Inter, sans-serif';
       ctx.fillStyle = '#94a3b8';
       ctx.textAlign = 'center';
-      ctx.fillText('0.5 ω₁', plotX, plotY + plotH + 11);
-      ctx.fillText('1.0 ω₁ (Rezonanță)', plotX + plotW * 0.5, plotY + plotH + 11);
-      ctx.fillText('1.5 ω₁', plotX + plotW, plotY + plotH + 11);
+      ctx.fillText('0.5 ω₁', plotX, plotY + plotH + 10);
+      ctx.fillText('1.0 ω₁ (Rezonanță)', plotX + plotW * 0.5, plotY + plotH + 10);
+      ctx.fillText('1.5 ω₁', plotX + plotW, plotY + plotH + 10);
 
       ctx.restore();
     }
 
-    _drawTelemetryAndWaveforms(ctx, x, y, w, h) {
+    _drawComparativeWaveforms(ctx, x, y, w, h) {
       ctx.save();
 
-      // Container
       ctx.fillStyle = 'rgba(11, 20, 38, 0.94)';
       ctx.strokeStyle = '#1e293b';
       ctx.lineWidth = 1.0;
@@ -1098,76 +1321,76 @@
       ctx.font = 'bold 9.5px Inter, sans-serif';
       ctx.fillStyle = '#38bdf8';
       ctx.textAlign = 'left';
-      ctx.fillText('TELEMETRIE DINAMICĂ & DISIPARE', x + 10, y + 14);
+      ctx.fillText('OSCILOGRAMĂ COMPARATIVĂ ÎN TIMP REAL x(t)', x + 10, y + 14);
 
-      // Digital Meters Table
-      const x1Cm = (Math.abs(this.x1) * 100).toFixed(1);
-      const relCm = (Math.abs(this.x2 - this.x1) * 100).toFixed(1);
-      const optF = (1 / (1 + this.massRatio)).toFixed(3);
-      const powerKw = this.dissipatedPower.toFixed(0);
+      ctx.font = '8px Inter, sans-serif';
+      ctx.fillStyle = '#ff5252';
+      ctx.fillText('■ Turn Fără TMD', x + 10, y + 25);
+      ctx.fillStyle = '#00e5ff';
+      ctx.fillText('■ Turn Cu TMD (Taipei 101)', x + 92, y + 25);
+      ctx.fillStyle = '#fbbf24';
+      ctx.fillText('■ Cursă Bilă (x₂ - x₁)', x + 215, y + 25);
 
-      const rows = [
-        { label: 'Deplasare Vârf Clădire (x₁):', val: `±${x1Cm} cm`, color: this.x1 > 0.45 ? '#ff5252' : '#38bdf8' },
-        { label: 'Cursă Pendul 660 t (x₂ - x₁):', val: `±${relCm} cm`, color: '#fbbf24' },
-        { label: 'Putere Disipată în Pistoane:', val: `${powerKw} kW`, color: '#34d399' },
-        { label: 'Acordare Optimă Den Hartog (f_opt):', val: `${optF}`, color: '#a78bfa' }
-      ];
-
-      let rowY = y + 28;
-      ctx.font = '8.5px Inter, sans-serif';
-      for (const r of rows) {
-        ctx.fillStyle = '#94a3b8';
-        ctx.textAlign = 'left';
-        ctx.fillText(r.label, x + 10, rowY);
-        ctx.fillStyle = r.color;
-        ctx.textAlign = 'right';
-        ctx.fillText(r.val, x + w - 10, rowY);
-        rowY += 13;
+      const waveX = x + 10;
+      const waveY = y + 32;
+      const waveW = w - 20;
+      const waveH = h - 40;
+      if (waveW < 20 || waveH < 16) {
+        ctx.restore();
+        return;
       }
 
-      // Mini-oscilloscope waveform of x1(t) vs x2(t) at bottom
-      const waveX = x + 10;
-      const waveY = rowY + 4;
-      const waveW = w - 20;
-      const waveH = (y + h) - waveY - 8;
+      const midY = waveY + waveH * 0.5;
+      ctx.strokeStyle = 'rgba(71, 85, 105, 0.45)';
+      ctx.beginPath();
+      ctx.moveTo(waveX, midY);
+      ctx.lineTo(waveX + waveW, midY);
+      ctx.stroke();
 
-      if (waveW > 20 && waveH > 16) {
-        ctx.fillStyle = 'rgba(15, 23, 42, 0.7)';
-        ctx.fillRect(waveX, waveY, waveW, waveH);
-        ctx.strokeStyle = '#334155';
-        ctx.lineWidth = 0.8;
-        ctx.beginPath();
-        ctx.moveTo(waveX, waveY + waveH * 0.5);
-        ctx.lineTo(waveX + waveW, waveY + waveH * 0.5);
-        ctx.stroke();
+      const count = this.histCount;
+      if (count > 2) {
+        const startIdx = (this.histIdx - count + this.histLen) % this.histLen;
 
-        // Draw x1 wave (Cyan)
-        ctx.strokeStyle = '#00e5ff';
-        ctx.lineWidth = 1.2;
+        // 1. Unprotected Tower x0(t) (Red)
+        ctx.strokeStyle = 'rgba(255, 82, 82, 0.85)';
+        ctx.lineWidth = 1.5;
         ctx.beginPath();
-        for (let i = 0; i < this.historyLen; i++) {
-          const idx = (this.histIdx + i) % this.historyLen;
-          const px = waveX + (i / this.historyLen) * waveW;
-          const py = waveY + waveH * 0.5 - (this.histX1[idx] / 1.2) * (waveH * 0.45);
+        for (let i = 0; i < count; i++) {
+          const idx = (startIdx + i) % this.histLen;
+          const px = waveX + (i / (this.histLen - 1)) * waveW;
+          const py = midY - (this.histX0[idx] / 1.15) * (waveH * 0.44);
           if (i === 0) ctx.moveTo(px, py);
           else ctx.lineTo(px, py);
         }
         ctx.stroke();
 
-        // Draw x2 wave (Golden yellow)
+        // 2. Pendulum relative stroke (Gold dashed)
         if (this.tmdActive) {
-          ctx.strokeStyle = '#fbbf24';
-          ctx.lineWidth = 1.0;
+          ctx.strokeStyle = 'rgba(251, 191, 36, 0.75)';
+          ctx.lineWidth = 1.2;
           ctx.beginPath();
-          for (let i = 0; i < this.historyLen; i++) {
-            const idx = (this.histIdx + i) % this.historyLen;
-            const px = waveX + (i / this.historyLen) * waveW;
-            const py = waveY + waveH * 0.5 - (this.histX2[idx] / 1.2) * (waveH * 0.45);
+          for (let i = 0; i < count; i++) {
+            const idx = (startIdx + i) % this.histLen;
+            const px = waveX + (i / (this.histLen - 1)) * waveW;
+            const py = midY - (this.histRel[idx] / 1.15) * (waveH * 0.44);
             if (i === 0) ctx.moveTo(px, py);
             else ctx.lineTo(px, py);
           }
           ctx.stroke();
         }
+
+        // 3. Protected Taipei 101 Tower x1(t) (Bright Cyan)
+        ctx.strokeStyle = '#00e5ff';
+        ctx.lineWidth = 2.0;
+        ctx.beginPath();
+        for (let i = 0; i < count; i++) {
+          const idx = (startIdx + i) % this.histLen;
+          const px = waveX + (i / (this.histLen - 1)) * waveW;
+          const py = midY - (this.histX1[idx] / 1.15) * (waveH * 0.44);
+          if (i === 0) ctx.moveTo(px, py);
+          else ctx.lineTo(px, py);
+        }
+        ctx.stroke();
       }
 
       ctx.restore();
