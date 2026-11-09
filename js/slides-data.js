@@ -372,25 +372,63 @@
     // ===================== SLIDE 6 =====================
     {
       id: 6,
-      title: 'Seisme și Clădiri de Înălțimi Diferite',
+      title: 'Consecință Seismică: Seisme și Clădiri de Înălțimi Diferite',
       category: 'pericol',
-      simType: 'placeholder',
+      simType: 'seismic-buildings',
       theoryHTML: `
-        <div class="theory-placeholder">
-          <div class="theory-placeholder__icon">🏢</div>
-          <div class="theory-placeholder__text">
-            <strong>Slide în pregătire</strong><br>
-            De ce cutremurele afectează selectiv clădirile în funcție de înălțime.
+        <div class="theory-section">
+          <h3>1. Paradoxul Cutremurelor: De ce Cad Selectiv Clădirile?</h3>
+          <p>În timpul unui cutremur major, scoarța terestră oscilează orizontal cu un spectru de frecvențe bine definit. Un fenomen aparent paradoxal observat de seismologi este <strong>selectivitatea distrugerii</strong>: pe aceeași stradă, o clădire modernă cu 10 etaje se poate prăbuși complet, în timp ce o casă veche cu 2 etaje și un zgârie-nori cu 30 de etaje rămân aproape intacte!</p>
+          <p>Explicația fizică este <strong>rezonanța mecanică selectivă</strong> dintre frecvența dominantă a undelor seismice din sol (\\(f_{\\text{seism}}\\)) și frecvența proprie de oscilație a clădirii (\\(f_0\\)).</p>
+        </div>
+
+        <div class="theory-section">
+          <h3>2. Regula Inginerească: Înălțimea vs. Perioada Proprie (\\(T_0 \\approx 0{,}1 \\cdot N\\))</h3>
+          <p>Din punct de vedere mecanic, o clădire se comportă ca o grindă elastică în consolă (cantilever) încastrată în fundație. În ingineria seismică, perioada fundamentală de oscilație \\(T_0\\) (în secunde) este direct proporțională cu numărul de etaje \\(N\\):</p>
+          <div class="equation-card">
+            <div class="equation-card__label">Relația Fundamentală Perioadă Proprie — Număr de Etaje</div>
+            $$T_0 \\approx 0{,}1 \\cdot N \\; [\\text{s}] \\quad \\Longleftrightarrow \\quad f_0 = \\frac{1}{T_0} \\approx \\frac{10}{N} \\; [\\text{Hz}]$$
           </div>
-          <ul class="theory-placeholder__topics">
-            <li>Undele seismice ca forță excitatoare cu spectru de frecvențe</li>
-            <li>Relația \\(T \\approx 0.1 \\times N\\) (perioada proprie vs nr. etaje)</li>
-            <li>Fenomenul selectiv: clădirile medii rezonează, celelalte nu</li>
-            <li>Proiectare anti-seismică și izolare la bază</li>
+          <ul class="theory-points">
+            <li><strong>Clădire Joasă (\\(N = 3\\) etaje — Rigidă):</strong> \\(T_0 \\approx 0{,}3\\text{ s}\\), \\(f_0 \\approx 3{,}33\\text{ Hz}\\). Rezonează la trepidații rapide, de înaltă frecvență (cutremure de suprafață apropiate de epicentru).</li>
+            <li><strong>Clădire Medie (\\(N = 10\\) etaje — Standard):</strong> \\(T_0 \\approx 1{,}0\\text{ s}\\), \\(f_0 \\approx 1{,}00\\text{ Hz}\\). Vulnerabilă la unde seismice cu perioadă medie.</li>
+            <li><strong>Clădire Înaltă / Zgârie-Nori (\\(N = 20\\) etaje — Flexibilă):</strong> \\(T_0 \\approx 2{,}0\\text{ s}\\), \\(f_0 \\approx 0{,}50\\text{ Hz}\\). Rezonează la oscilații lente, de perioadă lungă, propagate la distanță mare sau amplificate de soluri aluvionare moi.</li>
           </ul>
         </div>
+
+        <div class="theory-section">
+          <h3>3. Ecuația Mișcării Relative la Baza Clădirii</h3>
+          <p>Dacă solul se deplasează orizontal după legea \\(x_g(t) = X_g \\cos(\\omega t)\\), deplasarea relativă a vârfului clădirii față de fundație \\(u(t) = x(t) - x_g(t)\\) este guvernată de forța de inerție seismică \\(F_{\\text{ef}}(t) = -m \\ddot{x}_g(t)\\):</p>
+          <div class="equation-card">
+            <div class="equation-card__label">Ecuația Seismică și Factorul de Amplificare (Drift)</div>
+            $$m\\ddot{u} + c\\dot{u} + ku = -m\\ddot{x}_g(t) = m \\omega^2 X_g \\cos(\\omega t)$$
+            $$\\frac{U_{\\max}}{X_g} = \\frac{(\\omega / \\omega_0)^2}{\\sqrt{\\left[1 - (\\omega / \\omega_0)^2\\right]^2 + \\left(2\\zeta \\frac{\\omega}{\\omega_0}\\right)^2}}$$
+          </div>
+          <p>Pentru clădirile din beton armat, amortizarea structurală este mică (\\(\\zeta \\approx 5\\%\\)), ceea ce produce la rezonanță (\\(\\omega = \\omega_0\\)) o amplificare de \\(Q = \\frac{1}{2\\zeta} \\approx 10\\times\\) a mișcării solului!</p>
+        </div>
+
+        <div class="theory-section">
+          <h3>4. Studii de Caz Istorice: Ciudad de México (1985) și Vrancea (1977)</h3>
+          <ul class="theory-points">
+            <li><strong>Ciudad de México (19 septembrie 1985, \\(M_w = 8{,}0\\)):</strong> Construit pe albia secată a lacului Texcoco, stratul de argilă moale a intrat în rezonanță la perioada de <strong>\\(T \\approx 2{,}0\\text{ s}\\) (\\(f \\approx 0{,}5\\text{ Hz}\\))</strong>. Clădirile joase (2–4 etaje) și turnurile de peste 35 de etaje au scăpat neatinse, însă sute de clădiri între <strong>8 și 20 de etaje</strong> (\\(T_0 \\approx 1{,}0 - 2{,}0\\text{ s}\\)) au intrat în rezonanță dublă și s-au prăbușit!</li>
+            <li><strong>Vrancea — București (4 martie 1977, \\(M_w = 7{,}4\\)):</strong> Cutremurul subcrustal adânc (\\(94\\text{ km}\\)) a generat la București o undă cu perioadă lungă (<strong>\\(T \\approx 1{,}2 - 1{,}5\\text{ s}\\), \\(f \\approx 0{,}7 - 0{,}9\\text{ Hz}\\)</strong>), afectând selectiv blocurile înalte cu 8–12 etaje și parter flexibil.</li>
+          </ul>
+        </div>
+
+        <div class="theory-section">
+          <h3>5. Soluția Inginerească: Izolarea Seismică a Bazei (Base Isolation)</h3>
+          <p>Prin decuplarea clădirii de fundație cu ajutorul <strong>reazemelor elastomerice cu miez de plumb (LRB)</strong>, perioada proprie a întregii structuri este mutată la \\(T_{\\text{izolat}} \\approx 3{,}5 - 4{,}5\\text{ s}\\) (\\(f_0 \\approx 0{,}24\\text{ Hz}\\)), mult sub spectrul seismic. În acest regim supra-rezonant (\\(\\omega \\gg \\omega_0\\)), solul oscilează sub reazeme, iar clădirea rămâne aproape staționară prin inerție!</p>
+        </div>
+
+        <div class="theory-callout">
+          <strong>Experiment în Simulare:</strong> Apasă pe butoanele <em>„🏛️ Cutremur Local (3.33 Hz)”</em>, <em>„🇷🇴 Vrancea 1977 (1.00 Hz)”</em> și <em>„🇲🇽 Mexico 1985 (0.50 Hz)”</em> sau activează <em>„🌊 Baleiaj Spectru”</em> pentru a vedea cum fiecare clădire intră pe rând în rezonanță! Apoi apasă <em>„🛡️ Izolare la Bază (LRB)”</em> pentru a proteja toate clădirile simultan.
+        </div>
       `,
-      simConfig: { placeholderIcon: '🏢', placeholderTitle: 'Simulator Cutremur cu 3 Clădiri', placeholderDesc: 'Trei clădiri cu înălțimi diferite pe platformă seismică vibratoare. Frecvența variabilă arată rezonanța selectivă.' }
+      simConfig: {
+        fSeism: 1.00,
+        pga: 0.35,
+        zeta: 0.05
+      }
     },
 
     // ===================== SLIDE 7 =====================

@@ -167,6 +167,8 @@
           simHTML = this._buildSlide4SimPanel(data);
         } else if (data.simType === 'millennium-bridge') {
           simHTML = this._buildSlide5SimPanel(data);
+        } else if (data.simType === 'seismic-buildings') {
+          simHTML = this._buildSlide6SimPanel(data);
         } else {
           simHTML = this._buildPlaceholderSimPanel(data);
         }
@@ -453,6 +455,63 @@
       `;
     },
 
+    _buildSlide6SimPanel(data) {
+      const cfg = data.simConfig || {};
+      const fSeism = (cfg.fSeism || 1.00).toFixed(2);
+      const pga = (cfg.pga || 0.35).toFixed(2);
+      const zeta = ((cfg.zeta || 0.05) * 100).toFixed(1);
+      return `
+        <div class="slide__simulation">
+          <div class="sim-canvas-wrap">
+            <canvas class="sim-canvas" id="sim-canvas-6"></canvas>
+          </div>
+          <div class="sim-controls">
+            <!-- Row 1: Sliders -->
+            <div class="sim-controls__row">
+              <div class="sim-slider-group">
+                <span class="sim-slider-group__label">f_seism (frecvență)</span>
+                <input type="range" id="sim6-freq" min="0.20" max="4.20" step="0.02" value="${fSeism}">
+                <span class="sim-slider-group__value" id="sim6-freq-val">${fSeism} Hz (T=1.00s)</span>
+              </div>
+              <div class="sim-slider-group">
+                <span class="sim-slider-group__label">a_g (intensitate PGA)</span>
+                <input type="range" id="sim6-pga" min="0.10" max="0.80" step="0.05" value="${pga}">
+                <span class="sim-slider-group__value" id="sim6-pga-val">${pga} g</span>
+              </div>
+              <div class="sim-slider-group">
+                <span class="sim-slider-group__label">ζ (amortizare beton)</span>
+                <input type="range" id="sim6-zeta" min="1.5" max="20.0" step="0.5" value="${zeta}">
+                <span class="sim-slider-group__value" id="sim6-zeta-val">ζ = ${zeta}%</span>
+              </div>
+            </div>
+
+            <!-- Row 2: Earthquake Scenarios & Solutions -->
+            <div class="sim-controls__row sim-controls__row--presets">
+              <span class="sim-controls__tag">Cutremure & Moduri:</span>
+              <button class="sim-btn" id="sim6-preset-3fl" title="Rezonanță Clădire Joasă 3 Etaje (f₀ = 3.33 Hz, T₀ = 0.3s)">🏛️ Seism Frecvență Înaltă (3.33 Hz — 3 Etaje)</button>
+              <button class="sim-btn sim-btn--danger" id="sim6-preset-10fl" title="Cutremurul Vrancea 1977 (f₀ = 1.00 Hz, T₀ = 1.0s) — Rezonanță 10 Etaje">🇷🇴 Vrancea 1977 (1.00 Hz — 10 Etaje)</button>
+              <button class="sim-btn" id="sim6-preset-20fl" title="Cutremurul Ciudad de México 1985 (f₀ = 0.50 Hz, T₀ = 2.0s) — Rezonanță 20 Etaje">🇲🇽 Mexico 1985 (0.50 Hz — 20 Etaje)</button>
+              <button class="sim-btn" id="sim6-preset-sweep" title="Mătură automat frecvența seismică de la 0.25 Hz la 4.0 Hz">🌊 Baleiaj Spectru</button>
+              <button class="sim-btn" id="sim6-preset-iso" title="Activează izolarea seismică a bazei cu reazeme elastomerice LRB">🛡️ Izolare la Bază (LRB)</button>
+            </div>
+
+            <!-- Row 3: Action Buttons & Live Indicators -->
+            <div class="sim-controls__actions">
+              <button class="sim-btn sim-btn--primary" id="sim6-play">⏸ Pauză</button>
+              <button class="sim-btn sim-btn--danger" id="sim6-reset">↺ Reset</button>
+
+              <div class="sim-controls__badges">
+                <span class="sim-badge sim-badge--cyan" id="sim6-period-badge">T_seism = 1.00 s</span>
+                <span class="sim-badge sim-badge--danger" id="sim6-res-badge">⚠️ Rezonanță: 10 Etaje (Vrancea 1977)</span>
+              </div>
+
+              <span class="sim-controls__hint">💡 Click pe graficul spectral sau trage de vârful oricărei clădiri!</span>
+            </div>
+          </div>
+        </div>
+      `;
+    },
+
     _buildPlaceholderSimPanel(data) {
       const cfg = data.simConfig || {};
       return `
@@ -541,6 +600,8 @@
         sim = new TacomaNarrowsSim(canvasId, data.simConfig);
       } else if (data.simType === 'millennium-bridge') {
         sim = new MillenniumBridgeSim(canvasId, data.simConfig);
+      } else if (data.simType === 'seismic-buildings') {
+        sim = new SeismicBuildingsSim(canvasId, data.simConfig);
       } else {
         sim = new PlaceholderSim(canvasId, data.simConfig || {});
       }
