@@ -365,28 +365,28 @@
               </div>
             </div>
 
-            <!-- Row 2: Profile Selection & Presets -->
+            <!-- Row 2: Profile Selection & Historical Stages -->
             <div class="sim-controls__row sim-controls__row--presets">
-              <span class="sim-controls__tag">Profil Tablier:</span>
-              <button class="sim-btn sim-btn--primary" id="sim4-profile-h" title="Grindă plină H (Tacoma 1940) - generează flutter violent">⚠️ Grindă H (Tacoma 1940)</button>
-              <button class="sim-btn" id="sim4-profile-truss" title="Grindă cu zăbrele deschisă (Tacoma 1950) - aerul trece liber">🛡️ Zăbrele (Tacoma 1950)</button>
-              <button class="sim-btn" id="sim4-profile-aero" title="Profil casetat aerodinamic modern (aripă)">✈️ Casetă Aerodinamică</button>
-              <button class="sim-btn sim-btn--preset" id="sim4-preset-collapse" title="Recreează condițiile din 7 Noiembrie 1940">🌪️ Ziua Colapsului (1940)</button>
-              <button class="sim-btn" id="sim4-preset-truss" title="Modernizarea din 1950 la aceeași viteză a vântului">🛡️ Test cu Zăbrele</button>
+              <span class="sim-controls__tag">Profil & Etape:</span>
+              <button class="sim-btn sim-btn--primary" id="sim4-profile-h" title="Grinzi pline din oțel (Tacoma 1940) — separă fluxul și creează flutter">⚠️ Grinzi Pline H (1940)</button>
+              <button class="sim-btn" id="sim4-profile-truss" title="Grindă deschisă cu zăbrele (Tacoma 1950) — vântul trece liber">🛡️ Zăbrele (1950)</button>
+              <button class="sim-btn" id="sim4-profile-aero" title="Casetă aerodinamică modernă">✈️ Profil Aerodinamic</button>
+              <button class="sim-btn sim-btn--preset" id="sim4-preset-collapse" title="Simulează cronologia completă 10:00 AM -> 11:09 AM">🎬 Cronologia Colapsului (10:00–11:09)</button>
+              <button class="sim-btn" id="sim4-preset-truss" title="Testează podul reconstruit în 1950 la același vânt">🛡️ Test Modernizare 1950</button>
             </div>
 
             <!-- Row 3: Action Buttons & Live Indicators -->
             <div class="sim-controls__actions">
               <button class="sim-btn sim-btn--primary" id="sim4-play">⏸ Pauză</button>
-              <button class="sim-btn sim-btn--danger" id="sim4-reset">↺ Reset</button>
-              <button class="sim-btn" id="sim4-snap-cable" title="Simulează ruperea cablului central de amarare">✂️ Rupe Cablu Centru</button>
+              <button class="sim-btn sim-btn--danger" id="sim4-reset">↺ Reconstruiește Podul</button>
+              <button class="sim-btn" id="sim4-snap-cable" title="Ora 10:00 AM: Alunecă colierul central / Forfecă cablu vertical">⚡ 10:00 AM: Alunecă Colierul</button>
 
               <div class="sim-controls__badges">
-                <span class="sim-badge sim-badge--danger" id="sim4-damp-badge">c_eff = -0.18 (Negativă ⚠️)</span>
-                <span class="sim-badge sim-badge--amber" id="sim4-mode-badge">⚡ FLUTTER DIVERGENT</span>
+                <span class="sim-badge sim-badge--danger" id="sim4-damp-badge">Cabluri: 48/48</span>
+                <span class="sim-badge sim-badge--amber" id="sim4-mode-badge">⌚ 10:00 AM — Flutter ±45°</span>
               </div>
 
-              <span class="sim-controls__hint">💡 Poți trage tablierul cu mouse-ul/touch pentru a induce o răsucire manuală!</span>
+              <span class="sim-controls__hint">💡 Trage de pod sau urmărește cum se rup cablurile unul câte unul la ±45°!</span>
             </div>
           </div>
         </div>

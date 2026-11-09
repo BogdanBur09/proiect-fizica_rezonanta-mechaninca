@@ -1,8 +1,11 @@
 /* ============================================================
-   SLIDE 4: TACOMA NARROWS BRIDGE (1940) — TORSIONAL FLUTTER
-   Fizică: Rezonanță aeroelastică, desprinderea vârtejurilor Kármán,
-           amortizare aeroelastică negativă (self-excited flutter),
-           limită structurală și colaps mecanic în apă.
+   SLIDE 4: TACOMA NARROWS BRIDGE (1940) — AEROELASTIC FLUTTER
+   Simulare avansată 3D + Tunel Aerodinamic în Secțiune:
+   1. Separarea fluxului pe grinzile pline (solid plate girders) & vârtejuri
+   2. Ora 10:00 AM: Alunecarea colierului central (cable band slip) -> Torsiune
+   3. Auto-excitație (Aeroelastic Flutter): vântul împinge în direcția răsucirii (±45°)
+   4. Forfecarea cablurilor verticale (suspenders) unul câte unul
+   5. Ora 11:00 AM: Ruperea secțiunii de 600 ft (183 m), urmată la 11:09 AM de restul podului
    Autor: Buruiana Bogdan-Ioan
    ============================================================ */
 
@@ -13,74 +16,95 @@
     constructor(canvasId, config) {
       super(canvasId, config);
 
-      // --- Physical Parameters (Tacoma Narrows historical scale) ---
-      this.B = 11.9;               // Deck width (meters)
-      this.D = 2.4;                // Girder height (meters)
-      this.mass = 8500;            // Deck mass per unit length (kg/m)
-      this.I = (1 / 12) * this.mass * this.B * this.B; // Moment of inertia ~ 100,000 kg*m^2/m
+      // Physical & Historical Parameters
+      this.B = 11.9;               // Lățimea tablierului (m)
+      this.D = 2.4;                // Înălțimea grinzii pline (m)
+      this.windSpeed = (config && config.windSpeed !== undefined) ? config.windSpeed : 19.0; // 19 m/s = 68 km/h
+      this.kTheta = (config && config.kTheta !== undefined) ? config.kTheta : 1.0;
+      this.cTheta = (config && config.cTheta !== undefined) ? config.cTheta : 0.03;
+      this.deckType = (config && config.deckType) || 'h-girder'; // 'h-girder' | 'truss' | 'aerofoil'
 
-      // Configurable properties
-      this.windSpeed = (config && config.windSpeed !== undefined) ? config.windSpeed : 19.0; // m/s (19 m/s = 68 km/h on Nov 7, 1940)
-      this.kTheta = (config && config.kTheta !== undefined) ? config.kTheta : 1.0;           // Torsional stiffness factor
-      this.cTheta = (config && config.cTheta !== undefined) ? config.cTheta : 0.03;          // Structural damping ratio
-      this.deckType = (config && config.deckType) || 'h-girder';                              // 'h-girder' | 'truss' | 'aerofoil'
+      // Frequencies
+      this.wTors = 1.65;           // Pulsație torsională de afișare
+      this.wVert = 2.10;           // Pulsație verticală (mod Galloping Gertie)
 
-      // Natural frequencies
-      this.wTors = 1.26;           // Base torsional frequency ~ 0.20 Hz (f = 0.2 Hz => w = 1.26 rad/s)
-      this.wVert = 0.88;           // Base vertical heaving frequency ~ 0.14 Hz
+      // Number of discrete roadway segments across the 2800-ft (853 m) main span
+      this.numSegments = 22;
 
-      // Dynamic states (when intact)
-      this.theta = 0.04;           // Torsion angle (rad)
+      // Historical Timeline State
+      // Phases:
+      // 1 = 09:30 AM: Oscilații verticale (Vortex shedding, colier intact)
+      // 2 = 10:00 AM: Colierul central alunecă -> Fluture Aeroelastic Torsional (crește spre ±45°)
+      // 3 = 10:55 AM: La ±45°, cablurile verticale (suspenders) se forfecă unul câte unul
+      // 4 = 11:00 AM: Secțiunea de 600 ft (segmentele 3..9) se rupe și cade în apă
+      // 5 = 11:09 AM: Restul deschiderii principale cedează în cascadă și se prăbușește
+      this.phase = 1;
+      this.simClockMinutes = 0;    // Minutes since 09:45 AM
+      this.cableBandSlipped = false;
+      this.bandSlipSparkTimer = 0;
+
+      // Torsional & Vertical state
+      this.theta = 0.0;            // Peak torsional angle of main span (rad)
       this.omegaTheta = 0.0;       // Angular velocity d(theta)/dt (rad/s)
-      this.y = 0.0;                // Vertical displacement (m)
-      this.vy = 0.0;               // Vertical velocity (m/s)
+      this.maxAllowedDeg = 45.0;   // Historical 45 degree peak tilt
+      this.vertPhase = 0.0;
+      this.vertAmp = 0.35;
 
-      // Disaster / Collapse state
-      this.critThetaDeg = 38.0;    // Collapse threshold angle (degrees)
-      this.cableSnapped = false;   // Central or hanger cable snapped
-      this.isCollapsed = false;    // Structural failure reached
-      this.collapseTime = 0;       // Seconds since collapse
-
-      // Falling fractured debris and water splashes
-      this.leftWreck = null;
-      this.centerWreck = null;
-      this.fallingCar = null;
+      // Segment & Suspender Cable Arrays
+      this.segments = [];
+      this.sparks = [];
       this.splashes = [];
-      this.debris = [];
+      this.vortices = [];
+      this.streamParticles = [];
 
-      // History buffers for real-time phase & time graphs
-      this.historyLength = 220;
+      // Timers for progressive cable shearing and two-stage collapse
+      this.cableSnapTimer = 0;
+      this.stage2CollapseTimer = 0;
+
+      // History buffer for theta(t) plot
+      this.historyLength = 180;
       this.historyTheta = new Float32Array(this.historyLength);
-      this.historyTime = new Float32Array(this.historyLength);
       this.historyIndex = 0;
 
-      // Phase plane trajectory buffer (theta vs omega_theta)
-      this.orbitPoints = [];
-      this.maxOrbitPoints = 140;
-
-      // Wind particles simulation
-      this.particles = [];
-      this.numParticles = 45;
-      this._initParticles();
-
-      // Vortices behind the bridge
-      this.vortices = [];
-
-      // Drag interaction
+      // Mouse drag interaction
       this.isDragging = false;
       this.dragStartY = 0;
       this.dragStartTheta = 0;
+
+      this._initStreamParticles();
+      this._initBridgeSegments();
     }
 
-    _initParticles() {
-      this.particles = [];
-      for (let i = 0; i < this.numParticles; i++) {
-        this.particles.push({
+    _initStreamParticles() {
+      this.streamParticles = [];
+      for (let i = 0; i < 38; i++) {
+        this.streamParticles.push({
           x: Math.random(),
-          y: Math.random(),
-          speed: 0.6 + Math.random() * 0.8,
-          size: 1.5 + Math.random() * 2.0,
-          opacity: 0.15 + Math.random() * 0.45
+          y: (Math.random() - 0.5) * 1.8,
+          speed: 0.75 + Math.random() * 0.45,
+          size: 1.5 + Math.random() * 1.5
+        });
+      }
+    }
+
+    _initBridgeSegments() {
+      this.segments = [];
+      // 600-foot section is segments 3 through 9 (7 segments out of 22 ~ 30% of main span)
+      for (let i = 0; i < this.numSegments; i++) {
+        const is600ftSection = (i >= 3 && i <= 9);
+        this.segments.push({
+          index: i,
+          is600ft: is600ftSection,
+          frontCableIntact: true,
+          backCableIntact: true,
+          cableStress: 0.2,
+          sagY: 0,                 // Local sag when cables snap
+          detached: false,         // True when section tears free from roadway
+          inWater: false,
+          fallY: 0,
+          fallVy: 0,
+          fallRot: 0,
+          fallVRot: 0
         });
       }
     }
@@ -89,7 +113,46 @@
       super.init();
       this._bindControls();
       this._bindMouse();
+      // Start directly in historical progression so user sees the action immediately
+      this.startHistoricalSequence();
+    }
+
+    startHistoricalSequence() {
+      this._initBridgeSegments();
+      this.sparks = [];
+      this.splashes = [];
+      this.vortices = [];
+      this.historyTheta.fill(0);
+
+      if (this.deckType === 'h-girder' && this.windSpeed >= 15) {
+        // Trigger the 10:00 AM cable band slip after 2.2 seconds so user sees vertical -> torsional transition
+        this.phase = 1;
+        this.cableBandSlipped = false;
+        this.simClockMinutes = 10; // 09:55 AM
+        this.theta = 0.02;
+        this.omegaTheta = 0.0;
+      } else {
+        this.phase = 1;
+        this.cableBandSlipped = false;
+        this.simClockMinutes = 0;
+        this.theta = 0.02;
+        this.omegaTheta = 0.0;
+      }
+
+      this._resetButtonsUI();
       this._updateBadges();
+    }
+
+    rebuildBridge() {
+      this.startHistoricalSequence();
+    }
+
+    _resetButtonsUI() {
+      const snapBtn = document.getElementById('sim4-snap-cable');
+      if (snapBtn) {
+        snapBtn.classList.remove('sim-btn--danger');
+        snapBtn.textContent = '⚡ 10:00 AM: Alunecă Colierul';
+      }
     }
 
     _bindControls() {
@@ -139,7 +202,7 @@
         if (btnH) btnH.classList.toggle('sim-btn--primary', profile === 'h-girder');
         if (btnTruss) btnTruss.classList.toggle('sim-btn--primary', profile === 'truss');
         if (btnAero) btnAero.classList.toggle('sim-btn--primary', profile === 'aerofoil');
-        this._updateBadges();
+        this.rebuildBridge();
       };
 
       if (btnH) btnH.addEventListener('click', () => setProfile('h-girder'));
@@ -150,42 +213,40 @@
       const presetCollapse = document.getElementById('sim4-preset-collapse');
       if (presetCollapse) {
         presetCollapse.addEventListener('click', () => {
-          this.rebuildBridge();
           this.windSpeed = 19.0;
           this.kTheta = 1.0;
           this.cTheta = 0.03;
           this.deckType = 'h-girder';
-          this.theta = 0.08;
-          this.omegaTheta = 0.15;
           this._syncControlValues();
-          this._updateBadges();
+          this.rebuildBridge();
+          // Immediately slip the cable band at 10:00 AM to jump straight into torsional buildup
+          this._triggerCableBandSlip();
         });
       }
 
       const presetTruss = document.getElementById('sim4-preset-truss');
       if (presetTruss) {
         presetTruss.addEventListener('click', () => {
-          this.rebuildBridge();
           this.windSpeed = 19.0;
           this.deckType = 'truss';
           this._syncControlValues();
-          this._updateBadges();
+          this.rebuildBridge();
         });
       }
 
       const presetSnap = document.getElementById('sim4-snap-cable');
       if (presetSnap) {
         presetSnap.addEventListener('click', () => {
-          if (this.isCollapsed) {
+          if (this.phase >= 4) {
             this.rebuildBridge();
             return;
           }
-          this.cableSnapped = true;
-          presetSnap.classList.add('sim-btn--danger');
-          presetSnap.textContent = '💥 Cablu Rupt!';
-          // Asymmetric shock impulse induces immediate violent flutter
-          this.omegaTheta += (this.theta >= 0 ? 0.6 : -0.6);
-          this._updateBadges();
+          if (!this.cableBandSlipped) {
+            this._triggerCableBandSlip();
+          } else {
+            // Manually shear off the next suspender cable immediately
+            this._shearNextSuspender(true);
+          }
         });
       }
 
@@ -211,35 +272,112 @@
       }
     }
 
-    rebuildBridge() {
-      this.isCollapsed = false;
-      this.collapseTime = 0;
-      this.theta = 0.03;
-      this.omegaTheta = 0.0;
-      this.y = 0.0;
-      this.vy = 0.0;
-      this.cableSnapped = false;
-      this.orbitPoints = [];
-      this.historyTheta.fill(0);
-      this.leftWreck = null;
-      this.centerWreck = null;
-      this.fallingCar = null;
-      this.splashes = [];
-      this.debris = [];
+    _triggerCableBandSlip() {
+      if (this.cableBandSlipped) return;
+      this.cableBandSlipped = true;
+      this.phase = 2;
+      this.simClockMinutes = 15; // 10:00 AM
+      this.bandSlipSparkTimer = 1.5;
+      this.theta = 0.12;         // Initial torsional imbalance (~7 deg)
+      this.omegaTheta = 0.35;
 
-      const resetBtn = document.getElementById('sim4-reset');
-      if (resetBtn) {
-        resetBtn.textContent = '↺ Reset';
-        resetBtn.classList.remove('sim-btn--primary');
+      const snapBtn = document.getElementById('sim4-snap-cable');
+      if (snapBtn) {
+        snapBtn.classList.add('sim-btn--danger');
+        snapBtn.textContent = '✂️ Forfecă Cablu Vertical';
       }
-
-      const snapB = document.getElementById('sim4-snap-cable');
-      if (snapB) {
-        snapB.classList.remove('sim-btn--danger');
-        snapB.textContent = '✂️ Rupe Cablu Centru';
-      }
-
       this._updateBadges();
+    }
+
+    _shearNextSuspender(manualForce) {
+      // Find intact suspenders in the 600-ft section first (segments 3..9), then the rest
+      const priorityOrder = [6, 5, 7, 4, 8, 3, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 2, 19, 1, 20, 0, 21];
+      for (const idx of priorityOrder) {
+        const seg = this.segments[idx];
+        if (!seg) continue;
+        if (seg.frontCableIntact) {
+          seg.frontCableIntact = false;
+          seg.sagY += 6;
+          this._spawnCableSpark(idx, true);
+          this._checkSectionFailure();
+          this._updateBadges();
+          return true;
+        }
+        if (seg.backCableIntact) {
+          seg.backCableIntact = false;
+          seg.sagY += 8;
+          this._spawnCableSpark(idx, false);
+          this._checkSectionFailure();
+          this._updateBadges();
+          return true;
+        }
+      }
+      return false;
+    }
+
+    _checkSectionFailure() {
+      // Count how many cables are broken in the 600-foot section (segments 3..9 -> 14 cables total)
+      let broken600 = 0;
+      for (let i = 3; i <= 9; i++) {
+        if (!this.segments[i].frontCableIntact) broken600++;
+        if (!this.segments[i].backCableIntact) broken600++;
+      }
+
+      // If at least 7 cables in the 600-foot section have snapped, the unsupported weight of concrete & steel tears the 600-ft section free!
+      if (broken600 >= 7 && this.phase < 4) {
+        this.phase = 4; // 11:00 AM: 600-ft section collapses!
+        this.simClockMinutes = 75; // 11:00 AM
+        this.stage2CollapseTimer = 0;
+        for (let i = 3; i <= 9; i++) {
+          const seg = this.segments[i];
+          seg.frontCableIntact = false;
+          seg.backCableIntact = false;
+          seg.detached = true;
+          seg.fallVy = 15 + Math.random() * 20;
+          seg.fallVRot = (Math.random() - 0.5) * 2.5;
+        }
+        this._updateBadges();
+      }
+    }
+
+    _triggerRestOfSpanCollapse() {
+      if (this.phase >= 5) return;
+      this.phase = 5; // 11:09 AM: Rest of main span collapses!
+      this.simClockMinutes = 84; // 11:09 AM
+      for (let i = 1; i < this.numSegments - 1; i++) {
+        const seg = this.segments[i];
+        if (!seg.detached) {
+          seg.frontCableIntact = false;
+          seg.backCableIntact = false;
+          seg.detached = true;
+          seg.fallVy = 5 + Math.abs(i - 12) * 3;
+          seg.fallVRot = (Math.random() - 0.5) * 3.0;
+        }
+      }
+      this._updateBadges();
+    }
+
+    _spawnCableSpark(segIndex, isFront) {
+      this.sparks.push({
+        segIndex,
+        isFront,
+        life: 1.0,
+        particles: Array.from({ length: 10 }, () => ({
+          vx: (Math.random() - 0.5) * 90,
+          vy: (Math.random() - 0.5) * 90 - 20,
+          x: 0,
+          y: 0
+        }))
+      });
+    }
+
+    _countIntactCables() {
+      let count = 0;
+      for (const s of this.segments) {
+        if (s.frontCableIntact) count++;
+        if (s.backCableIntact) count++;
+      }
+      return count;
     }
 
     _syncControlValues() {
@@ -272,56 +410,46 @@
       if (btnAero) btnAero.classList.toggle('sim-btn--primary', this.deckType === 'aerofoil');
     }
 
+    _getClockString() {
+      const totalMins = Math.floor(45 + this.simClockMinutes); // Starts at 09:45 AM
+      const hrs = 9 + Math.floor(totalMins / 60);
+      const mins = totalMins % 60;
+      return `${hrs < 10 ? '0' + hrs : hrs}:${mins < 10 ? '0' + mins : mins} AM`;
+    }
+
     _updateBadges() {
       const modeBadge = document.getElementById('sim4-mode-badge');
       const dampBadge = document.getElementById('sim4-damp-badge');
-
-      // Calculate effective aerodynamic damping coefficient
-      const aeroDeriv = this._getFlutterDerivativeA1();
-      const cAero = 0.5 * 1.225 * this.windSpeed * Math.pow(this.B, 3) * aeroDeriv / this.I;
-      const cEffective = this.cTheta * 2 * this.wTors - cAero;
+      const intact = this._countIntactCables();
+      const total = this.numSegments * 2;
 
       if (dampBadge) {
-        if (this.isCollapsed) {
-          dampBadge.textContent = '💥 RUPTURĂ FINALĂ';
-          dampBadge.className = 'sim-badge sim-badge--danger';
-        } else if (cEffective < 0) {
-          dampBadge.textContent = `c_eff = ${cEffective.toFixed(2)} (Amortizare Negativă ⚠️)`;
-          dampBadge.className = 'sim-badge sim-badge--danger';
-        } else {
-          dampBadge.textContent = `c_eff = +${cEffective.toFixed(2)} (Amortizare Pozitivă)`;
-          dampBadge.className = 'sim-badge sim-badge--cyan';
-        }
+        dampBadge.textContent = `Cabluri Verticale: ${intact}/${total}`;
+        dampBadge.className = intact < total * 0.6
+          ? 'sim-badge sim-badge--danger'
+          : (intact < total ? 'sim-badge sim-badge--amber' : 'sim-badge sim-badge--cyan');
       }
 
       if (modeBadge) {
-        if (this.isCollapsed) {
-          modeBadge.textContent = '🌊 PRĂBUȘIT ÎN APĂ';
+        const clock = this._getClockString();
+        if (this.phase === 5) {
+          modeBadge.textContent = `⌚ 11:09 AM — Colaps Total Deschidere`;
           modeBadge.className = 'sim-badge sim-badge--danger';
-        } else if (cEffective < 0 && Math.abs(this.theta * (180 / Math.PI)) > 12) {
-          modeBadge.textContent = '⚡ FLUTTER TORSIONAL DIVERGENT';
+        } else if (this.phase === 4) {
+          modeBadge.textContent = `⌚ 11:00 AM — Secțiunea 600 ft Prăbușită!`;
           modeBadge.className = 'sim-badge sim-badge--danger';
-        } else if (this.windSpeed > 8 && this.deckType === 'h-girder') {
-          modeBadge.textContent = '🌪️ Vârtejuri Kármán';
+        } else if (this.phase === 3) {
+          modeBadge.textContent = `⌚ ${clock} — Forfecare Cabluri (±45°)`;
+          modeBadge.className = 'sim-badge sim-badge--danger';
+        } else if (this.phase === 2) {
+          modeBadge.textContent = `⌚ ${clock} — Fluture Torsional Activ`;
           modeBadge.className = 'sim-badge sim-badge--amber';
         } else {
-          modeBadge.textContent = '🛡️ Regim Stabil';
-          modeBadge.className = 'sim-badge sim-badge--green';
+          modeBadge.textContent = this.deckType === 'h-girder'
+            ? `⌚ ${clock} — Oscilații Verticale`
+            : `🛡️ Structură Stabilă (${this.deckType === 'truss' ? 'Zăbrele' : 'Aerofoil'})`;
+          modeBadge.className = this.deckType === 'h-girder' ? 'sim-badge sim-badge--cyan' : 'sim-badge sim-badge--green';
         }
-      }
-    }
-
-    _getFlutterDerivativeA1() {
-      const f = (this.wTors * Math.sqrt(this.kTheta)) / (2 * Math.PI);
-      const Vr = this.windSpeed / (f * this.B + 1e-6);
-
-      if (this.deckType === 'h-girder') {
-        if (Vr < 2.0) return -0.05;
-        return 0.14 * (Vr - 2.0); // Positive flutter derivative -> self-excitation!
-      } else if (this.deckType === 'truss') {
-        return -0.28; // Constant positive damping
-      } else {
-        return -0.85; // High aerodynamic stability
       }
     }
 
@@ -336,35 +464,26 @@
       };
 
       const onDown = (e) => {
-        if (this.isCollapsed) {
-          // If clicked anywhere near the water/wreck, trigger rebuild
+        const pos = getPos(e);
+        if (this.phase >= 5 && pos.y < this.H * 0.6) {
           this.rebuildBridge();
           return;
         }
-
-        const pos = getPos(e);
-        const cx = (this.W < 640 ? this.W : this.W * 0.61) * 0.44;
-        const cy = (this.H < 640 ? this.H * 0.62 : this.H) * 0.46;
-        const r = Math.min(this.W * 0.35, 150);
-
-        if (Math.hypot(pos.x - cx, pos.y - cy) < r) {
-          this.isDragging = true;
-          this.dragStartY = pos.y;
-          this.dragStartTheta = this.theta;
-          e.preventDefault();
+        this.isDragging = true;
+        this.dragStartY = pos.y;
+        this.dragStartTheta = this.theta;
+        if (!this.cableBandSlipped && this.deckType === 'h-girder') {
+          this._triggerCableBandSlip();
         }
       };
 
       const onMove = (e) => {
-        if (!this.isDragging || this.isCollapsed) return;
+        if (!this.isDragging) return;
         const pos = getPos(e);
         const dy = pos.y - this.dragStartY;
-        // Limit manual drag between +/- 35 deg
-        const targetDeg = (this.dragStartTheta * 180 / Math.PI) + (dy / 4.0);
-        const clampedDeg = Math.max(-36, Math.min(36, targetDeg));
-        this.theta = clampedDeg * (Math.PI / 180);
+        const deg = Math.max(-45, Math.min(45, (this.dragStartTheta * 180 / Math.PI) + dy * 0.35));
+        this.theta = deg * (Math.PI / 180);
         this.omegaTheta = 0;
-        e.preventDefault();
       };
 
       const onUp = () => {
@@ -375,326 +494,223 @@
       window.addEventListener('mousemove', onMove);
       window.addEventListener('mouseup', onUp);
 
-      this.canvas.addEventListener('touchstart', onDown, { passive: false });
-      window.addEventListener('touchmove', onMove, { passive: false });
+      this.canvas.addEventListener('touchstart', onDown, { passive: true });
+      window.addEventListener('touchmove', onMove, { passive: true });
       window.addEventListener('touchend', onUp);
     }
 
-    _triggerCollapse() {
-      if (this.isCollapsed) return;
-      this.isCollapsed = true;
-      this.collapseTime = 0;
+    update(dt) {
+      // Clamp dt for stability
+      const safeDt = Math.min(dt, 0.04);
 
-      const mainW = this.W < 640 ? this.W : this.W * 0.61;
-      const mainH = this.H < 640 ? this.H * 0.62 : this.H;
-      const cx = mainW * 0.44;
-      const cy = mainH * 0.46;
-      const deckScale = Math.min(mainW * 0.65, 260);
-      const halfB = deckScale / 2;
+      // Advance vertical standing wave phase
+      this.vertPhase += this.wVert * safeDt * (this.windSpeed / 19.0);
 
-      // 1. Left damaged segment (hangs and swings from left hanger)
-      this.leftWreck = {
-        pivotX: cx - halfB * 0.9,
-        pivotY: cy - 10,
-        length: halfB * 0.9,
-        angle: this.theta,
-        vAngle: this.omegaTheta * 0.4,
-        targetAngle: Math.PI * 0.45 // Dangles almost vertically downward
-      };
-
-      // 2. Center & Right fractured roadway section (snaps and free-falls into water)
-      this.centerWreck = {
-        x: cx + halfB * 0.25,
-        y: cy + 10,
-        vx: (this.windSpeed / 19.0) * 45,
-        vy: 20,
-        angle: this.theta,
-        vAngle: this.omegaTheta * 0.8 + (Math.random() - 0.5) * 1.5,
-        w: halfB * 1.3,
-        h: deckScale * 0.22,
-        hitWater: false
-      };
-
-      // 3. Abandoned Car (Tubby's car falls from the roadway)
-      this.fallingCar = {
-        x: cx + halfB * 0.15,
-        y: cy - 15,
-        vx: (this.windSpeed / 19.0) * 55 + 20,
-        vy: -30,
-        angle: this.theta,
-        vAngle: 4.5,
-        hitWater: false
-      };
-
-      // 4. Fracture Debris (twisted steel plates, concrete chunks)
-      this.debris = [];
-      for (let i = 0; i < 35; i++) {
-        const ang = Math.random() * Math.PI * 2;
-        const spd = 40 + Math.random() * 160;
-        this.debris.push({
-          x: cx + (Math.random() - 0.5) * 30,
-          y: cy + (Math.random() - 0.5) * 20,
-          vx: Math.cos(ang) * spd + (this.windSpeed * 1.5),
-          vy: Math.sin(ang) * spd - 60,
-          size: 2.5 + Math.random() * 5.0,
-          angle: Math.random() * Math.PI,
-          vAngle: (Math.random() - 0.5) * 12,
-          color: Math.random() > 0.5 ? '#78909c' : '#37474f',
-          life: 1.0
-        });
+      // 1. Check automatic 10:00 AM Cable Band Slip transition
+      if (this.phase === 1 && this.deckType === 'h-girder' && this.windSpeed >= 15.0) {
+        this.simClockMinutes += safeDt * 1.6;
+        if (this.simClockMinutes >= 15.0 && !this.cableBandSlipped) {
+          this._triggerCableBandSlip();
+        }
       }
 
-      // 5. Water splashes
-      this.splashes = [];
-
-      // Update control buttons to show Rebuild option
-      const resetBtn = document.getElementById('sim4-reset');
-      if (resetBtn) {
-        resetBtn.textContent = '🔨 Reconstruiește Podul';
-        resetBtn.classList.add('sim-btn--primary');
+      if (this.bandSlipSparkTimer > 0) {
+        this.bandSlipSparkTimer = Math.max(0, this.bandSlipSparkTimer - safeDt);
       }
 
-      this._updateBadges();
-    }
+      // 2. Torsional Aeroelastic Flutter Dynamics
+      if (!this.isDragging) {
+        const subSteps = 5;
+        const h = safeDt / subSteps;
+        const w0 = this.wTors * Math.sqrt(this.kTheta);
 
-    _updateCollapsePhysics(dt) {
-      this.collapseTime += dt;
-      const H = this.H;
-      const waterY = H - (H * 0.16);
-
-      // 1. Left segment damped swinging to vertical dangle
-      if (this.leftWreck) {
-        const diff = this.leftWreck.targetAngle - this.leftWreck.angle;
-        const acc = diff * 7.0 - this.leftWreck.vAngle * 2.5;
-        this.leftWreck.vAngle += acc * dt;
-        this.leftWreck.angle += this.leftWreck.vAngle * dt;
-      }
-
-      // 2. Falling center deck chunk
-      if (this.centerWreck) {
-        if (this.centerWreck.y < waterY) {
-          // Free fall in air
-          this.centerWreck.vy += 420 * dt; // gravity
-          this.centerWreck.y += this.centerWreck.vy * dt;
-          this.centerWreck.x += this.centerWreck.vx * dt;
-          this.centerWreck.angle += this.centerWreck.vAngle * dt;
+        // Effective aerodynamic pumping rate:
+        // For H-girder above 15 m/s, wind actively pumps energy into the twist!
+        // For Truss or Aerofoil, aerodynamic damping is positive (decays twist to 0).
+        let flutterPump = 0;
+        if (this.deckType === 'h-girder') {
+          flutterPump = (this.windSpeed - 12.5) * 0.055 - this.cTheta * 2.2;
+        } else if (this.deckType === 'truss') {
+          flutterPump = -0.35 - this.cTheta * 2.0;
         } else {
-          // Hit water!
-          if (!this.centerWreck.hitWater) {
-            this.centerWreck.hitWater = true;
-            this._spawnWaterSplashes(this.centerWreck.x, waterY, 28);
+          flutterPump = -0.75 - this.cTheta * 2.0;
+        }
+
+        const maxRad = (this.maxAllowedDeg * Math.PI) / 180; // 45 deg = 0.785 rad
+
+        for (let s = 0; s < subSteps; s++) {
+          if (!this.cableBandSlipped) {
+            // Before 10:00 AM: only tiny torsional tremor, mostly vertical wave
+            const acc = -w0 * w0 * this.theta - 0.8 * this.omegaTheta + 0.03 * Math.sin(this.vertPhase);
+            this.omegaTheta += acc * h;
+            this.theta += this.omegaTheta * h;
+          } else {
+            // After 10:00 AM: Self-excited Van der Pol / Scanlan aeroelastic flutter
+            // Wind pushes in the exact direction of omegaTheta, saturating at +/- 45 degrees!
+            const normTh = this.theta / maxRad;
+            const saturation = 1.0 - Math.pow(normTh, 2) * 0.92;
+            const aeroMoment = flutterPump * saturation * this.omegaTheta;
+
+            // Non-linear hardening cable restoring torque so it never spins past +/- 45 deg
+            const restoring = -w0 * w0 * this.theta * (1.0 + 0.85 * normTh * normTh);
+
+            const alpha = restoring + aeroMoment;
+            this.omegaTheta += alpha * h;
+            this.theta += this.omegaTheta * h;
+
+            // Hard physical stop at +/- 46 degrees
+            if (Math.abs(this.theta) > maxRad * 1.03) {
+              this.theta = Math.sign(this.theta) * maxRad * 1.03;
+              this.omegaTheta *= -0.4;
+            }
           }
-          // Sinking / water buoyancy drag
-          this.centerWreck.vy *= Math.max(0, 1 - 4 * dt);
-          this.centerWreck.vAngle *= Math.max(0, 1 - 3 * dt);
-          this.centerWreck.y = Math.min(H - 10, this.centerWreck.y + this.centerWreck.vy * dt);
         }
       }
 
-      // 3. Falling Car
-      if (this.fallingCar) {
-        if (this.fallingCar.y < waterY) {
-          this.fallingCar.vy += 450 * dt;
-          this.fallingCar.y += this.fallingCar.vy * dt;
-          this.fallingCar.x += this.fallingCar.vx * dt;
-          this.fallingCar.angle += this.fallingCar.vAngle * dt;
+      const curDeg = Math.abs((this.theta * 180) / Math.PI);
+
+      // 3. Progressive Suspender Cable Shearing at high twist (>= 34 deg)
+      if (this.phase === 2 && curDeg >= 33.0 && this.deckType === 'h-girder') {
+        this.phase = 3; // Enter Phase 3: Cables shearing one by one
+        this.simClockMinutes = 65; // ~10:50 AM
+        this._updateBadges();
+      }
+
+      if (this.phase === 2 && this.simClockMinutes < 65) {
+        this.simClockMinutes += safeDt * 3.5;
+      }
+
+      if (this.phase === 3 && this.deckType === 'h-girder') {
+        this.simClockMinutes = Math.min(74, this.simClockMinutes + safeDt * 1.5);
+        // When twisting near peak amplitude, shear off suspender cables one by one!
+        if (curDeg >= 32.0) {
+          this.cableSnapTimer += safeDt;
+          if (this.cableSnapTimer >= 0.55) {
+            this.cableSnapTimer = 0;
+            this._shearNextSuspender(false);
+          }
+        }
+      }
+
+      // 4. Phase 4 (11:00 AM 600-ft collapse) -> Phase 5 (11:09 AM full span collapse)
+      if (this.phase === 4) {
+        this.stage2CollapseTimer += safeDt;
+        // Continue snapping adjacent cables during the 3.8s interval before full collapse
+        this.cableSnapTimer += safeDt;
+        if (this.cableSnapTimer >= 0.35) {
+          this.cableSnapTimer = 0;
+          this._shearNextSuspender(false);
+        }
+        if (this.stage2CollapseTimer >= 3.8) {
+          this._triggerRestOfSpanCollapse();
+        }
+      }
+
+      // 5. Update Falling Roadway Segments & Water Impact
+      for (const seg of this.segments) {
+        if (seg.detached) {
+          if (!seg.inWater) {
+            seg.fallVy += 260 * safeDt; // Gravity
+            seg.fallY += seg.fallVy * safeDt;
+            seg.fallRot += seg.fallVRot * safeDt;
+
+            if (seg.fallY >= 95) {
+              seg.inWater = true;
+              this._spawnSplash(seg.index);
+            }
+          } else {
+            // Sink slowly into Puget Sound
+            seg.fallVy *= Math.max(0, 1 - 4 * safeDt);
+            seg.fallY = Math.min(125, seg.fallY + seg.fallVy * safeDt);
+          }
         } else {
-          if (!this.fallingCar.hitWater) {
-            this.fallingCar.hitWater = true;
-            this._spawnWaterSplashes(this.fallingCar.x, waterY, 18);
+          // Calculate cable stress on intact segments
+          const xNorm = (seg.index + 0.5) / this.numSegments;
+          const localTwist = this.theta * Math.sin(2 * Math.PI * xNorm);
+          let stress = 0.25 + Math.abs(localTwist) * 1.6;
+          if (!seg.frontCableIntact || !seg.backCableIntact) {
+            stress += 0.65; // Neighboring cable carries double load!
           }
-          this.fallingCar.vy *= Math.max(0, 1 - 4.5 * dt);
-          this.fallingCar.vAngle *= Math.max(0, 1 - 4 * dt);
-          this.fallingCar.y = Math.min(H - 12, this.fallingCar.y + this.fallingCar.vy * dt);
+          seg.cableStress = stress;
         }
       }
 
-      // 4. Debris particles
-      for (let i = this.debris.length - 1; i >= 0; i--) {
-        const d = this.debris[i];
-        d.vy += 480 * dt;
-        d.x += d.vx * dt;
-        d.y += d.vy * dt;
-        d.angle += d.vAngle * dt;
-        d.life -= dt * 0.35;
-        if (d.y >= waterY && Math.random() < 0.2) {
-          this._spawnWaterSplashes(d.x, waterY, 2);
+      // 6. Update Sparks, Splashes, Streamlines & Vortices
+      for (let i = this.sparks.length - 1; i >= 0; i--) {
+        const sp = this.sparks[i];
+        sp.life -= safeDt * 1.8;
+        for (const p of sp.particles) {
+          p.x += p.vx * safeDt;
+          p.y += p.vy * safeDt;
+          p.vy += 180 * safeDt;
         }
-        if (d.life <= 0 || d.y > H + 20) {
-          this.debris.splice(i, 1);
-        }
+        if (sp.life <= 0) this.sparks.splice(i, 1);
       }
 
-      // 5. Water Splashes
       for (let i = this.splashes.length - 1; i >= 0; i--) {
         const s = this.splashes[i];
-        s.x += s.vx * dt;
-        s.y += s.vy * dt;
-        s.vy += 380 * dt; // gravity
-        s.life -= dt * 0.9;
-        if (s.life <= 0) {
-          this.splashes.splice(i, 1);
+        s.life -= safeDt * 0.85;
+        for (const d of s.droplets) {
+          d.x += d.vx * safeDt;
+          d.y += d.vy * safeDt;
+          d.vy += 240 * safeDt;
+        }
+        if (s.life <= 0) this.splashes.splice(i, 1);
+      }
+
+      const windNorm = this.windSpeed / 19.0;
+      for (const p of this.streamParticles) {
+        p.x += p.speed * windNorm * safeDt * 0.95;
+        if (p.x > 1.15) {
+          p.x = -0.15;
+          p.y = (Math.random() - 0.5) * 1.8;
         }
       }
 
-      // History recording in collapsed state (flatlines at collapsed angle)
-      this.historyTheta[this.historyIndex] = 0;
-      this.historyIndex = (this.historyIndex + 1) % this.historyLength;
-    }
-
-    _spawnWaterSplashes(x, y, count) {
-      for (let i = 0; i < count; i++) {
-        const angle = -Math.PI * 0.5 + (Math.random() - 0.5) * 1.3;
-        const spd = 60 + Math.random() * 190;
-        this.splashes.push({
-          x: x + (Math.random() - 0.5) * 24,
-          y: y,
-          vx: Math.cos(angle) * spd,
-          vy: Math.sin(angle) * spd,
-          radius: 2 + Math.random() * 3.5,
-          color: Math.random() > 0.4 ? 'rgba(0, 229, 255, 0.75)' : 'rgba(255, 255, 255, 0.9)',
-          life: 1.0
-        });
-      }
-    }
-
-    update(dt) {
-      // If already collapsed, simulate the debris falling into the sound
-      if (this.isCollapsed) {
-        this._updateCollapsePhysics(dt);
-        return;
-      }
-
-      if (this.isDragging) return;
-
-      // Integration sub-stepping for smooth, accurate RK4 simulation
-      const subSteps = 6;
-      const h = dt / subSteps;
-
-      const w0Tors = this.wTors * Math.sqrt(this.kTheta);
-      const A1 = this._getFlutterDerivativeA1();
-      const rho = 1.225;
-      const B = this.B;
-      const I = this.I;
-
-      // Kármán vortex shedding frequency Strouhal relation: fs = St * v / D
-      const St = 0.13;
-      const fK = (St * this.windSpeed) / this.D;
-      const wK = 2 * Math.PI * fK;
-
-      for (let s = 0; s < subSteps; s++) {
-        const tCur = this.time - dt + s * h;
-
-        // Equations of motion with non-linear physical cable limits:
-        const derivFn = (th, wth, t) => {
-          // Structural damping
-          const dampStruct = 2 * this.cTheta * w0Tors * wth;
-
-          // Non-linear cubic hardening restoring torque of suspension cables:
-          // The suspension cables stiffen non-linearly under geometric tension.
-          // This prevents unphysical infinite 360-degree rotation!
-          const kRestoring = Math.pow(w0Tors, 2) * (th + 1.4 * Math.pow(th, 3));
-
-          // Asymmetric cable snap effect: if cable snapped, heavy bias pulls bridge into twist
-          const asymBias = this.cableSnapped ? 0.45 * Math.sin(w0Tors * 0.9 * t) : 0;
-
-          // Aerodynamic moment with aerodynamic stall saturation:
-          // Above ~20 degrees, airflow separates (dynamic stall), diminishing aerodynamic moment
-          const stallFactor = 1.0 / (1.0 + 2.8 * Math.pow(th, 2));
-          const aeroDamping = (0.5 * rho * this.windSpeed * Math.pow(B, 3) * A1 * wth * stallFactor) / I;
-          const aeroStiffness = (0.5 * rho * Math.pow(this.windSpeed, 2) * Math.pow(B, 2) * 0.20 * th * stallFactor) / I;
-
-          // Vortex shedding lift moment (periodic wake forcing)
-          const vortexAmp = this.deckType === 'h-girder' ? 0.45 : (this.deckType === 'truss' ? 0.05 : 0.02);
-          const vortexForcing = vortexAmp * Math.sin(wK * t) * (this.windSpeed / 19.0);
-
-          // Net angular acceleration
-          const alpha = -dampStruct - kRestoring + aeroDamping + aeroStiffness + vortexForcing + asymBias;
-          return alpha;
-        };
-
-        // RK4 step for theta and omegaTheta
-        const k1_th = this.omegaTheta;
-        const k1_w = derivFn(this.theta, this.omegaTheta, tCur);
-
-        const k2_th = this.omegaTheta + 0.5 * h * k1_w;
-        const k2_w = derivFn(this.theta + 0.5 * h * k1_th, this.omegaTheta + 0.5 * h * k1_w, tCur + 0.5 * h);
-
-        const k3_th = this.omegaTheta + 0.5 * h * k2_w;
-        const k3_w = derivFn(this.theta + 0.5 * h * k2_th, this.omegaTheta + 0.5 * h * k2_w, tCur + 0.5 * h);
-
-        const k4_th = this.omegaTheta + h * k3_w;
-        const k4_w = derivFn(this.theta + h * k3_th, this.omegaTheta + h * k3_w, tCur + h);
-
-        this.theta += (h / 6) * (k1_th + 2 * k2_th + 2 * k3_th + k4_th);
-        this.omegaTheta += (h / 6) * (k1_w + 2 * k2_w + 2 * k3_w + k4_w);
-
-        // Bounded vertical heaving oscillation (coupled to torsion)
-        const accY = -Math.pow(this.wVert, 2) * this.y - 0.20 * this.vy + 0.18 * Math.sin(wK * tCur) * (this.windSpeed / 19.0) * (this.deckType === 'h-girder' ? 1.0 : 0.1);
-        this.vy += accY * h;
-        this.y += this.vy * h;
-        // Clamp vertical heaving strictly to [-1.5m, 1.5m]
-        this.y = Math.max(-1.5, Math.min(1.5, this.y));
-      }
-
-      // Check structural collapse threshold:
-      // When twist reaches critical threshold (+/- 38 degrees), the bridge actually snaps!
-      const deg = Math.abs(this.theta * (180 / Math.PI));
-      if (deg >= this.critThetaDeg || (this.cableSnapped && deg >= 28.0)) {
-        this._triggerCollapse();
-        return;
-      }
-
-      // Update history buffer for oscilloscope
-      this.historyTheta[this.historyIndex] = this.theta;
-      this.historyTime[this.historyIndex] = this.time;
-      this.historyIndex = (this.historyIndex + 1) % this.historyLength;
-
-      // Orbit points for phase portrait (theta vs omega_theta)
-      if (Math.random() < 0.35) {
-        this.orbitPoints.push({ th: this.theta, w: this.omegaTheta });
-        if (this.orbitPoints.length > this.maxOrbitPoints) {
-          this.orbitPoints.shift();
-        }
-      }
-
-      // Update wind particles
-      const speedScale = (this.windSpeed / 19.0) * 0.7;
-      for (const p of this.particles) {
-        p.x += p.speed * speedScale * dt * 1.5;
-        if (p.x > 1.05) {
-          p.x = -0.05;
-          p.y = Math.random();
-        }
-      }
-
-      // Update vortices
-      if (this.windSpeed > 4) {
-        if (Math.random() < (this.windSpeed / 25.0) * 0.3) {
-          const side = Math.sin(wK * this.time) > 0 ? 1 : -1;
+      // Spawn vortices above and below deck in wind tunnel
+      if (this.windSpeed > 5 && this.deckType === 'h-girder') {
+        if (Math.random() < windNorm * 0.35) {
+          const isTop = Math.sin(this.vertPhase * 2) > 0;
           this.vortices.push({
-            x: 0,
-            y: side * (12 + Math.random() * 8),
-            radius: 8 + Math.random() * 6,
-            rotation: 0,
-            rotSpeed: side * 4.0,
-            opacity: 0.6,
+            x: 0.15,
+            y: isTop ? -0.28 : 0.28,
+            r: 5,
+            dir: isTop ? 1 : -1,
+            ang: 0,
             life: 1.0
           });
         }
       }
-
       for (let i = this.vortices.length - 1; i >= 0; i--) {
         const v = this.vortices[i];
-        v.x += (this.windSpeed * 3.5) * dt;
-        v.rotation += v.rotSpeed * dt;
-        v.radius += 10 * dt;
-        v.life -= dt * 0.65;
-        v.opacity = Math.max(0, v.life * 0.5);
-        if (v.life <= 0) {
-          this.vortices.splice(i, 1);
-        }
+        v.x += windNorm * safeDt * 0.75;
+        v.r += safeDt * 18;
+        v.ang += v.dir * safeDt * 6;
+        v.life -= safeDt * 0.75;
+        if (v.life <= 0) this.vortices.splice(i, 1);
       }
+
+      // Record theta history
+      this.historyTheta[this.historyIndex] = (this.theta * 180) / Math.PI;
+      this.historyIndex = (this.historyIndex + 1) % this.historyLength;
+    }
+
+    _spawnSplash(segIndex) {
+      this.splashes.push({
+        segIndex,
+        life: 1.0,
+        droplets: Array.from({ length: 14 }, () => {
+          const ang = -Math.PI * 0.5 + (Math.random() - 0.5) * 1.1;
+          const spd = 45 + Math.random() * 110;
+          return {
+            x: (Math.random() - 0.5) * 16,
+            y: 0,
+            vx: Math.cos(ang) * spd,
+            vy: Math.sin(ang) * spd,
+            r: 1.8 + Math.random() * 2.8
+          };
+        })
+      });
     }
 
     render() {
@@ -702,410 +718,404 @@
       const ctx = this.ctx;
       const W = this.W;
       const H = this.H;
+      if (W < 10 || H < 10) return;
 
       ctx.clearRect(0, 0, W, H);
 
-      // 1. Background (Stormy Puget Sound Sky & Mist)
-      this._drawAtmosphere(ctx, W, H);
-
-      // 2. Top Warning Banner
-      this._drawBanner(ctx, W);
-
-      // Layout split: Left 62% Main Bridge 3D View, Right 38% Diagnostic Graphs
-      const isNarrow = W < 640;
-      const mainW = isNarrow ? W : W * 0.61;
-      const mainH = isNarrow ? H * 0.62 : H;
-      const sideX = isNarrow ? 0 : W * 0.61;
-      const sideY = isNarrow ? H * 0.62 : 0;
-      const sideW = isNarrow ? W : W * 0.39;
-      const sideH = isNarrow ? H * 0.38 : H;
-
-      // 3. Main Bridge Visualization (Cross-Section & Suspension perspective)
-      this._drawBridgeSection(ctx, mainW, mainH);
-
-      // 4. Diagnostic Instruments Panel (Oscilloscope & Phase Plane)
-      this._drawDiagnostics(ctx, sideX, sideY, sideW, sideH, isNarrow);
-    }
-
-    _drawAtmosphere(ctx, W, H) {
-      const stormGrad = ctx.createLinearGradient(0, 0, 0, H);
-      stormGrad.addColorStop(0, '#060912');
-      stormGrad.addColorStop(0.5, '#0b1122');
-      stormGrad.addColorStop(1, '#070b16');
-      ctx.fillStyle = stormGrad;
+      // Background gradient
+      const bg = ctx.createLinearGradient(0, 0, 0, H);
+      bg.addColorStop(0, '#060a14');
+      bg.addColorStop(0.55, '#0b1326');
+      bg.addColorStop(1, '#070c18');
+      ctx.fillStyle = bg;
       ctx.fillRect(0, 0, W, H);
 
-      // Water body at bottom
-      const waterH = H * 0.16;
-      const waterY = H - waterH;
-      const waterGrad = ctx.createLinearGradient(0, waterY, 0, H);
-      waterGrad.addColorStop(0, '#0a1728');
-      waterGrad.addColorStop(0.5, '#07101e');
-      waterGrad.addColorStop(1, '#030810');
-      ctx.fillStyle = waterGrad;
-      ctx.fillRect(0, waterY, W, waterH);
+      // Top Status Banner
+      const bannerH = H < 320 ? 20 : 26;
+      this._drawBanner(ctx, W, bannerH);
 
-      // Water reflection lines
-      ctx.strokeStyle = 'rgba(0, 229, 255, 0.08)';
-      ctx.lineWidth = 1;
-      for (let i = 0; i < 6; i++) {
-        const wy = waterY + 6 + i * (waterH / 6);
-        ctx.beginPath();
-        ctx.moveTo(0, wy);
-        ctx.lineTo(W, wy);
-        ctx.stroke();
+      // Layout Regions:
+      // Top Region (56% of remaining height): Full 3D Isometric Bridge Span
+      // Bottom Region (44% of remaining height): Left = Wind Tunnel Cross-Section, Right = Timeline & Telemetry
+      const remH = H - bannerH;
+      const topY = bannerH;
+      const topH = remH * 0.57;
+      const botY = topY + topH;
+      const botH = remH * 0.43;
+
+      this._draw3DFullBridge(ctx, 0, topY, W, topH);
+
+      const isNarrow = W < 560;
+      if (isNarrow) {
+        this._drawWindTunnelInset(ctx, 4, botY + 2, W * 0.54 - 6, botH - 6);
+        this._drawTimelineAndTelemetry(ctx, W * 0.54 + 2, botY + 2, W * 0.46 - 6, botH - 6);
+      } else {
+        this._drawWindTunnelInset(ctx, 8, botY + 4, W * 0.52 - 12, botH - 8);
+        this._drawTimelineAndTelemetry(ctx, W * 0.52 + 4, botY + 4, W * 0.48 - 12, botH - 8);
       }
-
-      // Wind Flow Streak Particles
-      ctx.save();
-      for (const p of this.particles) {
-        const px = p.x * W;
-        const py = p.y * (H * 0.82);
-        const len = 14 + (this.windSpeed / 35.0) * 45;
-
-        ctx.strokeStyle = `rgba(105, 240, 174, ${p.opacity * (this.windSpeed / 25.0)})`;
-        ctx.lineWidth = p.size;
-        ctx.beginPath();
-        ctx.moveTo(px, py);
-        ctx.lineTo(px + len, py);
-        ctx.stroke();
-      }
-      ctx.restore();
     }
 
-    _drawBanner(ctx, W) {
-      const h = this.H < 300 ? 20 : 26;
+    _drawBanner(ctx, W, h) {
+      const deg = Math.abs((this.theta * 180) / Math.PI);
+      const isNarrow = W < 560;
       let text, color, bg;
 
-      const deg = Math.abs(this.theta * (180 / Math.PI));
-      const isNarrow = W < 540;
-
-      if (this.isCollapsed) {
+      if (this.phase === 5) {
         color = '#ff1744';
         bg = 'rgba(255, 23, 68, 0.28)';
         text = isNarrow
-          ? `💥 COLAPS TOTAL! Podul s-a rupt la ±${this.critThetaDeg}°!`
-          : `💥 COLAPS STRUCTURAL TOTAL! Torsiunea a rupt cablurile și niturile de oțel — Tablierul a căzut în apă!`;
-      } else if (deg > 14) {
+          ? '💥 11:09 AM — COLAPS TOTAL DESCHIDERE CENTRALĂ!'
+          : '💥 11:09 AM — COLAPS TOTAL: După secțiunea de 600 ft, restul deschiderii principale s-a prăbușit în Tacoma Narrows!';
+      } else if (this.phase === 4) {
+        color = '#ff1744';
+        bg = 'rgba(255, 23, 68, 0.25)';
+        text = isNarrow
+          ? '🌊 11:00 AM — SECȚIUNEA DE 600 FT (183m) S-A RUPT!'
+          : '🌊 11:00 AM — CEDARE CATASTROFALĂ: O secțiune de 600 de picioare (183 m) s-a smuls și s-a prăbușit în apă!';
+      } else if (this.phase === 3) {
         color = '#ff5252';
         bg = 'rgba(255, 82, 82, 0.22)';
         text = isNarrow
-          ? `⚠️ FLUTTER DIVERGENT! Torsiune = ±${deg.toFixed(1)}° | Amortizare Negativă`
-          : `⚠️ FLUTTER AEROELASTIC DIVERGENT! Torsiune extremă = ±${deg.toFixed(1)}° (Auto-excitație structurală distructivă)`;
-      } else if (this.windSpeed > 14 && this.deckType === 'h-girder') {
+          ? `✂️ RĂSUCIRE ±${deg.toFixed(0)}° — CABLURILE SE RUP UNUL CÂTE UNUL!`
+          : `✂️ RĂSUCIRE VIOLENTĂ (±${deg.toFixed(1)}° / max 45°) — Stresul forfecă cablurile verticale (suspenders) unul câte unul!`;
+      } else if (this.phase === 2) {
         color = '#ffab40';
-        bg = 'rgba(255, 171, 64, 0.15)';
+        bg = 'rgba(255, 171, 64, 0.16)';
         text = isNarrow
-          ? `🌪️ VÂNT CRITIC: ${this.windSpeed.toFixed(1)} m/s | Începe instabilitatea`
-          : `🌪️ VÂNT ÎN ZONA CRITICĂ: v = ${this.windSpeed.toFixed(1)} m/s (68 km/h) — Generare intensă de vârtejuri Kármán`;
+          ? `⚡ 10:00 AM: COLIER ALUNECAT -> FLUTTER ±${deg.toFixed(0)}°`
+          : `⚡ 10:00 AM: Colierul central a alunecat! Vântul împinge în direcția răsucirii (Fluture Aeroelastic: ±${deg.toFixed(1)}°)`;
       } else {
-        color = '#69f0ae';
-        bg = 'rgba(105, 240, 174, 0.10)';
-        text = isNarrow
-          ? `🛡️ REGIM STABIL: ${this.deckType.toUpperCase()} | v = ${this.windSpeed.toFixed(1)} m/s`
-          : `🛡️ REGIM STABIL | Structură: ${this.deckType === 'truss' ? 'Grindă cu Zăbrele (Nou 1950)' : (this.deckType === 'aerofoil' ? 'Profil Aerodinamic Casetat' : 'Grindă H')} | Amortizare pozitivă`;
+        color = this.deckType === 'h-girder' ? '#00e5ff' : '#69f0ae';
+        bg = this.deckType === 'h-girder' ? 'rgba(0, 229, 255, 0.10)' : 'rgba(105, 240, 174, 0.10)';
+        text = this.deckType === 'h-girder'
+          ? (isNarrow ? '🌊 09:45 AM: Vârtejuri pe grinzile pline (Mod Vertical)' : '🌊 09:45 AM: Vântul lovește grinzile pline -> separarea fluxului și vârtejuri (înainte de alunecarea colierului la 10:00)')
+          : `🛡️ PROFIL STABIL (${this.deckType.toUpperCase()}): Fluxul nu pompează energie în torsiune — Podul rămâne stabil!`;
       }
 
       ctx.fillStyle = bg;
       ctx.fillRect(0, 0, W, h);
-      ctx.strokeStyle = color + '55';
+      ctx.strokeStyle = color + '66';
       ctx.beginPath();
       ctx.moveTo(0, h);
       ctx.lineTo(W, h);
       ctx.stroke();
 
-      const fontSize = isNarrow ? 9 : (W < 750 ? 10 : 11);
-      ctx.font = `bold ${fontSize}px Inter, sans-serif`;
+      ctx.font = `bold ${isNarrow ? 8.5 : 10.5}px Inter, sans-serif`;
       ctx.fillStyle = color;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillText(text, W / 2, h / 2);
     }
 
-    _drawBridgeSection(ctx, mainW, mainH) {
-      const cx = mainW * 0.44;
-      const cy = mainH * 0.46 + this.y * 12;
+    // =========================================================================
+    // TOP PANEL: FULL 3D PERSPECTIVE TACOMA NARROWS SUSPENSION BRIDGE
+    // =========================================================================
+    _draw3DFullBridge(ctx, gx, gy, gw, gh) {
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(gx, gy, gw, gh);
+      ctx.clip();
 
-      // Suspension Towers on background
-      const towerX1 = cx - mainW * 0.38;
-      const towerX2 = cx + mainW * 0.38;
-      const towerTopY = mainH * 0.08;
-      const towerBotY = mainH * 0.88;
+      const waterY = gy + gh * 0.78;
 
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.12)';
-      ctx.lineWidth = 4;
-      // Tower 1
-      ctx.strokeRect(towerX1 - 8, towerTopY, 16, towerBotY - towerTopY);
-      // Tower 2
-      ctx.strokeRect(towerX2 - 8, towerTopY, 16, towerBotY - towerTopY);
+      // Puget Sound Water
+      const waterGrad = ctx.createLinearGradient(0, waterY, 0, gy + gh);
+      waterGrad.addColorStop(0, '#09192c');
+      waterGrad.addColorStop(1, '#040b14');
+      ctx.fillStyle = waterGrad;
+      ctx.fillRect(gx, waterY, gw, gy + gh - waterY);
 
-      // Cross-bracings on towers
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.06)';
-      ctx.lineWidth = 1.5;
-      for (let tX of [towerX1, towerX2]) {
-        for (let i = 0; i < 4; i++) {
-          const y1 = towerTopY + i * ((towerBotY - towerTopY) / 4);
-          const y2 = towerTopY + (i + 1) * ((towerBotY - towerTopY) / 4);
+      // Subtle water wave lines
+      ctx.strokeStyle = 'rgba(0, 229, 255, 0.08)';
+      ctx.lineWidth = 1;
+      for (let i = 1; i <= 4; i++) {
+        const wy = waterY + i * (( gh * 0.22 ) / 5);
+        ctx.beginPath();
+        ctx.moveTo(gx, wy);
+        ctx.lineTo(gx + gw, wy);
+        ctx.stroke();
+      }
+
+      // Bridge 3D Coordinates
+      const tower1X = gx + gw * 0.16;
+      const tower2X = gx + gw * 0.84;
+      const spanW = tower2X - tower1X;
+      const deckBaseY = gy + gh * 0.50;
+      const towerTopY = gy + gh * 0.10;
+      const towerBotY = waterY + 8;
+
+      // 3D Isometric depth offset between Back (North) and Front (South) cables/girders
+      const depthDX = Math.min(22, gw * 0.025);
+      const depthDY = Math.min(18, gh * 0.08);
+
+      // Draw Left & Right Side Approach Spans
+      this._drawSideSpan(ctx, gx + 10, tower1X, deckBaseY, towerTopY, depthDX, depthDY);
+      this._drawSideSpan(ctx, tower2X, gx + gw - 10, deckBaseY, towerTopY, depthDX, depthDY);
+
+      // Draw Left Tower (Tower 1)
+      this._draw3DTower(ctx, tower1X, towerTopY, towerBotY, depthDX, depthDY);
+
+      // Helper for Main Parabolic Cable Y at normalized span coordinate u in [0, 1]
+      const sagCenter = deckBaseY - towerTopY - 12;
+      // When 600-ft section or main span collapses, main cable recoils upward!
+      const cableRecoil = this.phase >= 5 ? -18 : (this.phase === 4 ? -10 : 0);
+      const getMainCableY = (u, isFront) => {
+        const parabola = 4 * u * (1 - u);
+        const base = towerTopY + parabola * (sagCenter + cableRecoil);
+        return isFront ? base + depthDY * 0.5 : base - depthDY * 0.5;
+      };
+
+      const getMainCableX = (u, isFront) => {
+        const base = tower1X + u * spanW;
+        return isFront ? base - depthDX * 0.5 : base + depthDX * 0.5;
+      };
+
+      // Draw Back (North) Main Suspension Cable
+      ctx.strokeStyle = 'rgba(0, 229, 255, 0.45)';
+      ctx.lineWidth = 2.0;
+      ctx.beginPath();
+      for (let i = 0; i <= 40; i++) {
+        const u = i / 40;
+        const cx = getMainCableX(u, false);
+        const cy = getMainCableY(u, false);
+        if (i === 0) ctx.moveTo(cx, cy);
+        else ctx.lineTo(cx, cy);
+      }
+      ctx.stroke();
+
+      // Calculate 3D positions of all 22 roadway segments
+      const segW = spanW / this.numSegments;
+      const maxTwistVis = Math.min(26, gh * 0.13); // Visual vertical displacement of roadway edges at 45 deg
+
+      for (let i = 0; i < this.numSegments; i++) {
+        const seg = this.segments[i];
+        const u1 = i / this.numSegments;
+        const u2 = (i + 1) / this.numSegments;
+        const uMid = (u1 + u2) * 0.5;
+
+        // Longitudinal mode shape:
+        // Before 10:00 AM: 3-half-wave vertical oscillation
+        // After 10:00 AM: 2-lobe anti-symmetric torsional wave sin(2*pi*u) (left half twists +, right half twists -)
+        const vertWave1 = Math.sin(3 * Math.PI * u1) * Math.sin(this.vertPhase) * (this.deckType === 'h-girder' ? 7 : 1.5);
+        const vertWave2 = Math.sin(3 * Math.PI * u2) * Math.sin(this.vertPhase) * (this.deckType === 'h-girder' ? 7 : 1.5);
+
+        const localTheta1 = this.theta * Math.sin(2 * Math.PI * u1);
+        const localTheta2 = this.theta * Math.sin(2 * Math.PI * u2);
+        const localThetaMid = this.theta * Math.sin(2 * Math.PI * uMid);
+
+        const x1 = tower1X + u1 * spanW;
+        const x2 = tower1X + u2 * spanW;
+        const xMid = (x1 + x2) * 0.5;
+
+        const yOff = seg.detached ? seg.fallY : seg.sagY;
+        const y1 = deckBaseY + vertWave1 + yOff;
+        const y2 = deckBaseY + vertWave2 + yOff;
+
+        const sinT1 = Math.sin(localTheta1 + (seg.detached ? seg.fallRot : 0));
+        const sinT2 = Math.sin(localTheta2 + (seg.detached ? seg.fallRot : 0));
+        const sinTMid = Math.sin(localThetaMid + (seg.detached ? seg.fallRot : 0));
+
+        // Front edge (South) and Back edge (North) 3D coordinates of this segment
+        const fX1 = x1 - depthDX * 0.5;
+        const fY1 = y1 + depthDY * 0.5 + sinT1 * maxTwistVis;
+        const fX2 = x2 - depthDX * 0.5;
+        const fY2 = y2 + depthDY * 0.5 + sinT2 * maxTwistVis;
+
+        const bX1 = x1 + depthDX * 0.5;
+        const bY1 = y1 - depthDY * 0.5 - sinT1 * maxTwistVis;
+        const bX2 = x2 + depthDX * 0.5;
+        const bY2 = y2 - depthDY * 0.5 - sinT2 * maxTwistVis;
+
+        // 1. Draw Back Vertical Suspender Cable (if intact or snapped whip)
+        const cabBX = getMainCableX(uMid, false);
+        const cabBY = getMainCableY(uMid, false);
+        const deckBX = (bX1 + bX2) * 0.5;
+        const deckBY = (bY1 + bY2) * 0.5;
+
+        this._draw3DSuspender(ctx, cabBX, cabBY, deckBX, deckBY, seg.backCableIntact, seg.cableStress, false);
+
+        // 2. Draw Roadway Surface Ribbon (Asphalt & Steel Frame)
+        if (!seg.inWater || seg.fallY < 118) {
           ctx.beginPath();
-          ctx.moveTo(tX - 8, y1);
-          ctx.lineTo(tX + 8, y2);
-          ctx.moveTo(tX + 8, y1);
-          ctx.lineTo(tX - 8, y2);
+          ctx.moveTo(bX1, bY1);
+          ctx.lineTo(bX2, bY2);
+          ctx.lineTo(fX2, fY2);
+          ctx.lineTo(fX1, fY1);
+          ctx.closePath();
+
+          // Highlight the 600-foot section (segments 3..9) subtly so user can track it
+          if (seg.detached) {
+            ctx.fillStyle = 'rgba(255, 23, 68, 0.55)';
+          } else if (seg.is600ft && this.phase >= 2) {
+            ctx.fillStyle = Math.abs(sinTMid) > 0.45 ? '#3e2738' : '#283347';
+          } else {
+            ctx.fillStyle = '#20293a';
+          }
+          ctx.fill();
+          ctx.strokeStyle = seg.is600ft && this.phase >= 2 ? 'rgba(255, 171, 64, 0.5)' : 'rgba(255, 255, 255, 0.15)';
+          ctx.lineWidth = 0.8;
           ctx.stroke();
+
+          // Yellow Center Road Line
+          ctx.strokeStyle = '#ffca28';
+          ctx.lineWidth = 1.2;
+          ctx.beginPath();
+          ctx.moveTo((bX1 + fX1) * 0.5, (bY1 + fY1) * 0.5);
+          ctx.lineTo((bX2 + fX2) * 0.5, (bY2 + fY2) * 0.5);
+          ctx.stroke();
+
+          // Front Girder Sidewall (Solid H-plate vs Open Truss vs Aerofoil)
+          const girderH = this.deckType === 'truss' ? 8 : 5.5;
+          ctx.beginPath();
+          ctx.moveTo(fX1, fY1 - girderH * 0.5);
+          ctx.lineTo(fX2, fY2 - girderH * 0.5);
+          ctx.lineTo(fX2, fY2 + girderH * 0.5);
+          ctx.lineTo(fX1, fY1 + girderH * 0.5);
+          ctx.closePath();
+
+          if (this.deckType === 'h-girder') {
+            ctx.fillStyle = seg.is600ft && this.phase >= 3 ? '#5c3842' : '#455a64';
+            ctx.fill();
+            ctx.strokeStyle = '#90a4ae';
+            ctx.lineWidth = 0.8;
+            ctx.stroke();
+          } else if (this.deckType === 'truss') {
+            ctx.strokeStyle = '#00e5ff';
+            ctx.lineWidth = 1.1;
+            ctx.stroke();
+            // Truss cross-diagonal
+            ctx.beginPath();
+            ctx.moveTo(fX1, fY1 - girderH * 0.5);
+            ctx.lineTo(fX2, fY2 + girderH * 0.5);
+            ctx.stroke();
+          } else {
+            ctx.fillStyle = '#263238';
+            ctx.fill();
+            ctx.strokeStyle = '#69f0ae';
+            ctx.lineWidth = 1;
+            ctx.stroke();
+          }
+
+          // Draw Tubby's Red Car on segment 7 (inside the 600-foot section!)
+          if (i === 7) {
+            const carX = (fX1 + fX2 + bX1 + bX2) * 0.25;
+            const carY = (fY1 + fY2 + bY1 + bY2) * 0.25 - 4;
+            ctx.fillStyle = '#ff1744';
+            ctx.beginPath();
+            ctx.arc(carX, carY, 3.5, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        }
+
+        // 3. Draw Front Vertical Suspender Cable
+        const cabFX = getMainCableX(uMid, true);
+        const cabFY = getMainCableY(uMid, true);
+        const deckFX = (fX1 + fX2) * 0.5;
+        const deckFY = (fY1 + fY2) * 0.5;
+
+        this._draw3DSuspender(ctx, cabFX, cabFY, deckFX, deckFY, seg.frontCableIntact, seg.cableStress, true);
+      }
+
+      // Draw Front (South) Main Suspension Cable
+      ctx.strokeStyle = '#00e5ff';
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      for (let i = 0; i <= 40; i++) {
+        const u = i / 40;
+        const cx = getMainCableX(u, true);
+        const cy = getMainCableY(u, true);
+        if (i === 0) ctx.moveTo(cx, cy);
+        else ctx.lineTo(cx, cy);
+      }
+      ctx.stroke();
+
+      // Draw Right Tower (Tower 2)
+      this._draw3DTower(ctx, tower2X, towerTopY, towerBotY, depthDX, depthDY);
+
+      // Draw Mid-Span Center Cable Band Node Marker (10:00 AM event)
+      const midX = getMainCableX(0.5, true);
+      const midY = getMainCableY(0.5, true);
+      ctx.save();
+      ctx.fillStyle = this.cableBandSlipped ? '#ff1744' : '#69f0ae';
+      ctx.beginPath();
+      ctx.arc(midX, midY, this.bandSlipSparkTimer > 0 ? 6 : 4, 0, Math.PI * 2);
+      ctx.fill();
+      if (this.cableBandSlipped && this.phase <= 3) {
+        ctx.fillStyle = '#ffab40';
+        ctx.font = 'bold 8.5px JetBrains Mono, monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText('⚡ Colier Central Alunecat (10:00 AM)', midX, midY - 10);
+      }
+      ctx.restore();
+
+      // Label for the 600-ft Section (Segments 3..9)
+      if (this.phase >= 2 && this.phase <= 4) {
+        const secX = tower1X + (6.5 / this.numSegments) * spanW;
+        const secY = this.phase === 4 ? waterY - 18 : deckBaseY + 34;
+        ctx.fillStyle = this.phase === 4 ? '#ff1744' : '#ffab40';
+        ctx.font = 'bold 9px JetBrains Mono, monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText(
+          this.phase === 4 ? '▼ SECȚIUNEA DE 600 FT (183m) PRĂBUȘITĂ LA 11:00 AM!' : '◄── Secțiunea Critică de 600 ft (183 m) ──►',
+          secX,
+          secY
+        );
+      }
+
+      // Draw Cable Shearing Sparks
+      for (const sp of this.sparks) {
+        const u = (sp.segIndex + 0.5) / this.numSegments;
+        const sx = getMainCableX(u, sp.isFront);
+        const sy = deckBaseY - 12;
+        ctx.fillStyle = `rgba(255, 193, 7, ${sp.life})`;
+        for (const p of sp.particles) {
+          ctx.beginPath();
+          ctx.arc(sx + p.x * 0.25, sy + p.y * 0.25, 2.0, 0, Math.PI * 2);
+          ctx.fill();
         }
       }
 
-      // Main Suspension Cables (Parabolic Catenary)
-      const cableY = mainH * 0.12;
-      const recoilOffset = this.isCollapsed
-        ? -26 * Math.exp(-1.4 * this.collapseTime) * Math.cos(5.0 * this.collapseTime)
-        : 0;
-
-      ctx.save();
-      ctx.strokeStyle = this.isCollapsed ? 'rgba(0, 229, 255, 0.5)' : '#00e5ff88';
-      ctx.lineWidth = 2.5;
-      ctx.beginPath();
-      ctx.moveTo(towerX1, cableY);
-      ctx.quadraticCurveTo(cx, cy - 70 + recoilOffset, towerX2, cableY);
-      ctx.stroke();
-      ctx.restore();
-
-      const deckScale = Math.min(mainW * 0.65, 260);
-      const halfB = deckScale / 2;
-      const girderH = deckScale * 0.22;
-
-      // ==========================================
-      // CASE 1: COLLAPSED POST-FAILURE VIEW
-      // ==========================================
-      if (this.isCollapsed) {
-        this._drawCollapsedScene(ctx, cx, cy, halfB, girderH, towerX1, towerX2, cableY, recoilOffset, mainW, mainH);
-        return;
-      }
-
-      // ==========================================
-      // CASE 2: INTACT OSCILLATING BRIDGE VIEW
-      // ==========================================
-      const cosTh = Math.cos(this.theta);
-      const sinTh = Math.sin(this.theta);
-
-      const xL = cx - halfB * cosTh;
-      const yL = cy - halfB * sinTh;
-      const xR = cx + halfB * cosTh;
-      const yR = cy + halfB * sinTh;
-
-      // Vertical Suspender Hangers
-      const hangerTopYL = cableY + Math.pow((xL - cx) / (towerX2 - cx), 2) * (cy - 70 - cableY);
-      const hangerTopYR = cableY + Math.pow((xR - cx) / (towerX2 - cx), 2) * (cy - 70 - cableY);
-
-      const stressL = Math.max(0.1, 1.0 - (sinTh * 1.6));
-      const stressR = Math.max(0.1, 1.0 + (sinTh * 1.6));
-
-      this._drawSuspenderCable(ctx, xL, hangerTopYL, xL, yL, stressL, this.cableSnapped);
-      this._drawSuspenderCable(ctx, xR, hangerTopYR, xR, yR, stressR, false);
-
-      // Kármán Vortices emanating downwind
-      ctx.save();
-      for (const v of this.vortices) {
-        const vx = xR + v.x;
-        const vy = yR + v.y;
-        ctx.strokeStyle = `rgba(255, 171, 64, ${v.opacity})`;
-        ctx.lineWidth = 1.5;
-        ctx.beginPath();
-        ctx.arc(vx, vy, v.radius, v.rotation, v.rotation + Math.PI * 1.4);
-        ctx.stroke();
-      }
-      ctx.restore();
-
-      // Draw the Rotated Deck Structure
-      ctx.save();
-      ctx.translate(cx, cy);
-      ctx.rotate(this.theta);
-
-      if (this.deckType === 'h-girder') {
-        this._drawHGirderDeck(ctx, halfB, girderH);
-      } else if (this.deckType === 'truss') {
-        this._drawTrussDeck(ctx, halfB, girderH);
-      } else {
-        this._drawAerofoilDeck(ctx, halfB, girderH);
-      }
-
-      // Draw Abandoned Car (Tubby's car on the tilting roadway!)
-      this._drawAbandonedCar(ctx, halfB * 0.15, -girderH * 0.5);
-
-      ctx.restore();
-
-      // Rotation Angle Arc HUD
-      this._drawAngleArc(ctx, cx, cy, halfB * 0.75);
-
-      // Wind Vector Arrow at Left
-      this._drawWindIndicator(ctx, 16, mainH * 0.40, mainW * 0.18);
-    }
-
-    _drawCollapsedScene(ctx, cx, cy, halfB, girderH, towerX1, towerX2, cableY, recoilOffset, mainW, mainH) {
-      const waterY = mainH - (mainH * 0.16);
-
-      // 1. Left damaged dangling segment (swings from left hanger)
-      if (this.leftWreck) {
-        ctx.save();
-        ctx.translate(this.leftWreck.pivotX, this.leftWreck.pivotY);
-        ctx.rotate(this.leftWreck.angle);
-
-        ctx.fillStyle = '#263238';
-        ctx.fillRect(0, -5, this.leftWreck.length, 10);
-
-        // Solid girder on outer side
-        ctx.fillStyle = '#37474f';
-        ctx.strokeStyle = '#ff1744';
-        ctx.lineWidth = 1.5;
-        ctx.strokeRect(0, -girderH * 0.4, this.leftWreck.length, girderH * 0.8);
-
-        // Jagged broken fracture edge at the end
-        ctx.fillStyle = '#ff5252';
-        ctx.beginPath();
-        ctx.moveTo(this.leftWreck.length, -girderH * 0.4);
-        ctx.lineTo(this.leftWreck.length + 8, -girderH * 0.1);
-        ctx.lineTo(this.leftWreck.length - 4, 0);
-        ctx.lineTo(this.leftWreck.length + 6, girderH * 0.2);
-        ctx.lineTo(this.leftWreck.length, girderH * 0.4);
-        ctx.closePath();
-        ctx.fill();
-        ctx.stroke();
-
-        ctx.restore();
-
-        // Left suspender cable holding the dangling wreckage
-        const hangerTopYL = cableY + Math.pow((this.leftWreck.pivotX - cx) / (towerX2 - cx), 2) * (cy - 70 - cableY);
-        ctx.strokeStyle = '#ff5252';
-        ctx.lineWidth = 2.5;
-        ctx.beginPath();
-        ctx.moveTo(this.leftWreck.pivotX, hangerTopYL);
-        ctx.lineTo(this.leftWreck.pivotX, this.leftWreck.pivotY);
-        ctx.stroke();
-      }
-
-      // 2. Right Suspender Cable (SNAPPED IN HALF)
-      const xR = cx + halfB * 0.9;
-      const hangerTopYR = cableY + Math.pow((xR - cx) / (towerX2 - cx), 2) * (cy - 70 - cableY);
-      ctx.save();
-      ctx.strokeStyle = 'rgba(255, 82, 82, 0.7)';
-      ctx.lineWidth = 1.8;
-      ctx.setLineDash([4, 4]);
-      ctx.beginPath();
-      ctx.moveTo(xR, hangerTopYR);
-      // Dangles curled down halfway
-      const swingX = Math.sin(this.collapseTime * 3) * 12;
-      ctx.quadraticCurveTo(xR - 10 + swingX, hangerTopYR + 60, xR + swingX, hangerTopYR + 110);
-      ctx.stroke();
-      ctx.restore();
-
-      // 3. Falling / Sunk Center Roadway Slab
-      if (this.centerWreck) {
-        ctx.save();
-        ctx.translate(this.centerWreck.x, this.centerWreck.y);
-        ctx.rotate(this.centerWreck.angle);
-
-        ctx.fillStyle = '#1c2430';
-        ctx.strokeStyle = '#ff1744';
-        ctx.lineWidth = 2;
-        ctx.fillRect(-this.centerWreck.w / 2, -girderH / 2, this.centerWreck.w, girderH);
-        ctx.strokeRect(-this.centerWreck.w / 2, -girderH / 2, this.centerWreck.w, girderH);
-
-        // Asphalt lane line
-        ctx.strokeStyle = '#ffc107';
-        ctx.lineWidth = 2;
-        ctx.setLineDash([6, 5]);
-        ctx.beginPath();
-        ctx.moveTo(-this.centerWreck.w / 2 + 10, 0);
-        ctx.lineTo(this.centerWreck.w / 2 - 10, 0);
-        ctx.stroke();
-
-        ctx.restore();
-      }
-
-      // 4. Falling / Sunk Car
-      if (this.fallingCar) {
-        this._drawAbandonedCar(ctx, this.fallingCar.x, this.fallingCar.y, this.fallingCar.angle);
-      }
-
-      // 5. Debris shards flying through air
-      ctx.save();
-      for (const d of this.debris) {
-        ctx.save();
-        ctx.translate(d.x, d.y);
-        ctx.rotate(d.angle);
-        ctx.fillStyle = d.color;
-        ctx.fillRect(-d.size / 2, -d.size / 2, d.size, d.size);
-        ctx.restore();
-      }
-      ctx.restore();
-
-      // 6. Water Splashes erupting from Puget Sound
-      ctx.save();
+      // Draw Water Splashes in Puget Sound
       for (const s of this.splashes) {
-        ctx.fillStyle = s.color;
-        ctx.beginPath();
-        ctx.arc(s.x, s.y, s.radius, 0, Math.PI * 2);
-        ctx.fill();
+        const u = (s.segIndex + 0.5) / this.numSegments;
+        const wx = tower1X + u * spanW;
+        ctx.fillStyle = `rgba(224, 247, 250, ${s.life * 0.85})`;
+        for (const d of s.droplets) {
+          ctx.beginPath();
+          ctx.arc(wx + d.x * 0.4, waterY + d.y * 0.35, d.r, 0, Math.PI * 2);
+          ctx.fill();
+        }
       }
-      ctx.restore();
 
-      // Disaster Announcement Card on Canvas
-      ctx.save();
-      const cardW = Math.min(mainW * 0.72, 310);
-      const cardH = 54;
-      const cardX = cx - cardW / 2;
-      const cardY = mainH * 0.24;
-
-      ctx.fillStyle = 'rgba(255, 23, 68, 0.16)';
-      ctx.strokeStyle = '#ff1744';
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.roundRect(cardX, cardY, cardW, cardH, 8);
-      ctx.fill();
-      ctx.stroke();
-
-      ctx.fillStyle = '#ff1744';
-      ctx.font = 'bold 11px Inter, sans-serif';
-      ctx.textAlign = 'center';
-      ctx.fillText('💥 CEDARE STRUCTURALĂ CATASTROFALĂ', cx, cardY + 20);
-
-      ctx.fillStyle = '#e8eaf6';
-      ctx.font = '9px JetBrains Mono, monospace';
-      ctx.fillText('Click pe ecran sau „Reset” pentru reconstrucție', cx, cardY + 38);
       ctx.restore();
     }
 
-    _drawSuspenderCable(ctx, x1, y1, x2, y2, stress, isSnapped) {
-      if (isSnapped) {
-        // Draw snapped, slack, curled cable
-        ctx.save();
-        ctx.strokeStyle = 'rgba(255, 82, 82, 0.5)';
-        ctx.lineWidth = 1.5;
-        ctx.setLineDash([4, 4]);
+    _draw3DSuspender(ctx, x1, y1, x2, y2, intact, stress, isFront) {
+      ctx.save();
+      if (!intact) {
+        // Snapped suspender cable dangling loosely from the main cable
+        ctx.strokeStyle = isFront ? 'rgba(255, 82, 82, 0.65)' : 'rgba(255, 82, 82, 0.35)';
+        ctx.lineWidth = 1.0;
         ctx.beginPath();
         ctx.moveTo(x1, y1);
-        ctx.quadraticCurveTo(x1 - 18, (y1 + y2) * 0.5, x1 - 6, (y1 + y2) * 0.5 + 20);
+        const midY = y1 + (y2 - y1) * 0.45;
+        ctx.quadraticCurveTo(x1 + 5, (y1 + midY) * 0.5, x1 + 3, midY);
         ctx.stroke();
         ctx.restore();
         return;
       }
 
-      ctx.save();
-      let color = '#00e5ff';
-      let lw = 2.0;
-
-      if (stress > 1.6) {
-        color = '#ff1744';
-        lw = 3.5;
-        ctx.shadowColor = '#ff1744';
-        ctx.shadowBlur = 10;
-      } else if (stress > 1.25) {
-        color = '#ffab40';
-        lw = 2.8;
+      if (stress > 1.35) {
+        ctx.strokeStyle = isFront ? '#ff1744' : 'rgba(255, 23, 68, 0.65)';
+        ctx.lineWidth = isFront ? 1.8 : 1.2;
+      } else if (stress > 0.95) {
+        ctx.strokeStyle = isFront ? '#ffab40' : 'rgba(255, 171, 64, 0.55)';
+        ctx.lineWidth = isFront ? 1.4 : 1.0;
+      } else {
+        ctx.strokeStyle = isFront ? 'rgba(0, 229, 255, 0.65)' : 'rgba(0, 229, 255, 0.30)';
+        ctx.lineWidth = isFront ? 1.1 : 0.8;
       }
 
-      ctx.strokeStyle = color;
-      ctx.lineWidth = lw;
       ctx.beginPath();
       ctx.moveTo(x1, y1);
       ctx.lineTo(x2, y2);
@@ -1113,340 +1123,299 @@
       ctx.restore();
     }
 
-    _drawHGirderDeck(ctx, halfB, girderH) {
-      const roadwayThick = 10;
+    _draw3DTower(ctx, tx, topY, botY, depthDX, depthDY) {
+      ctx.save();
+      const fX = tx - depthDX * 0.5;
+      const fTopY = topY + depthDY * 0.5;
+      const bX = tx + depthDX * 0.5;
+      const bTopY = topY - depthDY * 0.5;
 
-      // 1. Roadway Asphalt Slab
-      ctx.fillStyle = '#222938';
-      ctx.fillRect(-halfB, -roadwayThick / 2, halfB * 2, roadwayThick);
+      // Back leg
+      ctx.strokeStyle = '#37474f';
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.moveTo(bX, bTopY);
+      ctx.lineTo(bX, botY - depthDY * 0.5);
+      ctx.stroke();
 
-      // Roadway lines (yellow center lane stripes)
-      ctx.strokeStyle = '#ffc107';
+      // Cross struts connecting back and front legs
+      ctx.strokeStyle = '#546e7a';
       ctx.lineWidth = 2;
-      ctx.setLineDash([8, 6]);
-      ctx.beginPath();
-      ctx.moveTo(-halfB + 8, 0);
-      ctx.lineTo(halfB - 8, 0);
-      ctx.stroke();
-      ctx.setLineDash([]);
-
-      // 2. Solid Steel H-Girders on Left and Right edges
-      const gThick = 12;
-      ctx.fillStyle = '#37474f';
-      ctx.strokeStyle = '#78909c';
-      ctx.lineWidth = 1.5;
-
-      // Left solid girder
-      ctx.fillRect(-halfB - gThick, -girderH / 2, gThick, girderH);
-      ctx.strokeRect(-halfB - gThick, -girderH / 2, gThick, girderH);
-
-      // Right solid girder
-      ctx.fillRect(halfB, -girderH / 2, gThick, girderH);
-      ctx.strokeRect(halfB, -girderH / 2, gThick, girderH);
-
-      // Girder Flanges (H profile caps)
-      ctx.fillStyle = '#455a64';
-      ctx.fillRect(-halfB - gThick - 4, -girderH / 2 - 3, gThick + 8, 6);
-      ctx.fillRect(-halfB - gThick - 4, girderH / 2 - 3, gThick + 8, 6);
-      ctx.fillRect(halfB - 4, -girderH / 2 - 3, gThick + 8, 6);
-      ctx.fillRect(halfB - 4, girderH / 2 - 3, gThick + 8, 6);
-
-      // Structural label
-      ctx.fillStyle = '#ff5252';
-      ctx.font = 'bold 8.5px JetBrains Mono, monospace';
-      ctx.textAlign = 'center';
-      ctx.fillText('GRINDĂ PLINĂ „H” (Bluff Body)', 0, girderH / 2 + 18);
-    }
-
-    _drawTrussDeck(ctx, halfB, girderH) {
-      const deepH = girderH * 1.5;
-      const roadwayThick = 8;
-
-      // Roadway Slab
-      ctx.fillStyle = '#263238';
-      ctx.fillRect(-halfB, -roadwayThick / 2, halfB * 2, roadwayThick);
-
-      // Open Truss Lattice (diagonals allow wind to pass freely)
-      ctx.strokeStyle = '#00e5ff';
-      ctx.lineWidth = 1.5;
-      ctx.strokeRect(-halfB, -deepH / 2, halfB * 2, deepH);
-
-      const numBays = 8;
-      const bayW = (halfB * 2) / numBays;
-
-      ctx.beginPath();
-      for (let i = 0; i < numBays; i++) {
-        const bx1 = -halfB + i * bayW;
-        const bx2 = bx1 + bayW;
-        ctx.moveTo(bx1, -deepH / 2);
-        ctx.lineTo(bx2, deepH / 2);
-        ctx.moveTo(bx2, -deepH / 2);
-        ctx.lineTo(bx1, deepH / 2);
-      }
-      ctx.stroke();
-
-      ctx.fillStyle = '#69f0ae';
-      ctx.font = 'bold 8.5px JetBrains Mono, monospace';
-      ctx.textAlign = 'center';
-      ctx.fillText('ZĂBRELE DESCHISE (Permeabil la Vânt)', 0, deepH / 2 + 18);
-    }
-
-    _drawAerofoilDeck(ctx, halfB, girderH) {
-      const aeroH = girderH * 0.7;
-
-      ctx.fillStyle = '#1c2638';
-      ctx.strokeStyle = '#69f0ae';
-      ctx.lineWidth = 2;
-
-      ctx.beginPath();
-      ctx.moveTo(-halfB, 0);
-      ctx.lineTo(-halfB * 0.8, -aeroH / 2);
-      ctx.lineTo(halfB * 0.8, -aeroH / 2);
-      ctx.lineTo(halfB, 0);
-      ctx.lineTo(halfB * 0.8, aeroH / 2);
-      ctx.lineTo(-halfB * 0.8, aeroH / 2);
-      ctx.closePath();
-      ctx.fill();
-      ctx.stroke();
-
-      // Road surface
-      ctx.strokeStyle = '#ffab40';
-      ctx.lineWidth = 1.5;
-      ctx.setLineDash([6, 5]);
-      ctx.beginPath();
-      ctx.moveTo(-halfB * 0.75, -aeroH / 2 + 3);
-      ctx.lineTo(halfB * 0.75, -aeroH / 2 + 3);
-      ctx.stroke();
-      ctx.setLineDash([]);
-
-      ctx.fillStyle = '#69f0ae';
-      ctx.font = 'bold 8.5px JetBrains Mono, monospace';
-      ctx.textAlign = 'center';
-      ctx.fillText('CASETĂ AERODINAMICĂ (Flux Ataşat)', 0, aeroH / 2 + 18);
-    }
-
-    _drawAbandonedCar(ctx, x, y, angle) {
-      ctx.save();
-      ctx.translate(x, y - 6);
-      if (angle !== undefined) {
-        ctx.rotate(angle);
-      }
-
-      // Car body (1930s coupe style)
-      ctx.fillStyle = '#d32f2f';
-      ctx.beginPath();
-      ctx.roundRect(-12, -7, 24, 7, 2);
-      ctx.fill();
-
-      // Cabin roof
-      ctx.fillStyle = '#b71c1c';
-      ctx.beginPath();
-      ctx.roundRect(-6, -13, 12, 6, 2);
-      ctx.fill();
-
-      // Wheels
-      ctx.fillStyle = '#212121';
-      ctx.beginPath();
-      ctx.arc(-8, 0, 3, 0, Math.PI * 2);
-      ctx.arc(8, 0, 3, 0, Math.PI * 2);
-      ctx.fill();
-
-      // Historical tag
-      ctx.fillStyle = '#e8eaf6';
-      ctx.font = '7px JetBrains Mono, monospace';
-      ctx.textAlign = 'center';
-      ctx.fillText('Tubby', 0, -16);
-      ctx.restore();
-    }
-
-    _drawAngleArc(ctx, cx, cy, radius) {
-      const deg = this.theta * (180 / Math.PI);
-      ctx.save();
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
-      ctx.setLineDash([3, 3]);
-      ctx.beginPath();
-      ctx.moveTo(cx - radius - 15, cy);
-      ctx.lineTo(cx + radius + 15, cy);
-      ctx.stroke();
-      ctx.setLineDash([]);
-
-      // Torsion arc
-      ctx.strokeStyle = Math.abs(deg) > 15 ? '#ff5252' : '#ffab40';
-      ctx.lineWidth = 2.5;
-      ctx.beginPath();
-      ctx.arc(cx, cy, radius, 0, this.theta, this.theta < 0);
-      ctx.stroke();
-
-      ctx.fillStyle = Math.abs(deg) > 15 ? '#ff5252' : '#ffab40';
-      ctx.font = 'bold 11px JetBrains Mono, monospace';
-      ctx.textAlign = 'center';
-      ctx.fillText(`θ = ${deg.toFixed(1)}°`, cx, cy - radius - 8);
-      ctx.restore();
-    }
-
-    _drawWindIndicator(ctx, x, y, maxW) {
-      const arrowLen = Math.min(maxW, 14 + (this.windSpeed / 35.0) * 65);
-      ctx.save();
-      ctx.fillStyle = '#69f0ae';
-      ctx.font = 'bold 9px JetBrains Mono, monospace';
-      ctx.textAlign = 'left';
-      ctx.fillText(`VÂNT: ${this.windSpeed.toFixed(1)} m/s`, x, y - 8);
-
-      // Arrow
-      this.drawArrow(x, y, x + arrowLen, y, '#69f0ae', 2.5);
-      ctx.restore();
-    }
-
-    _drawDiagnostics(ctx, gx, gy, gw, gh, isNarrow) {
-      // 1. Upper Half: Real-time Torsional Waveform theta(t)
-      const oscY = gy + 6;
-      const oscH = gh * 0.49 - 8;
-      this._drawOscilloscope(ctx, gx + 6, oscY, gw - 12, oscH);
-
-      // 2. Lower Half: Phase Plane Portrait (theta vs omega_theta)
-      const phaseY = gy + gh * 0.51;
-      const phaseH = gh * 0.48 - 6;
-      this._drawPhasePortrait(ctx, gx + 6, phaseY, gw - 12, phaseH);
-    }
-
-    _drawOscilloscope(ctx, gx, gy, gw, gh) {
-      ctx.fillStyle = 'rgba(15, 22, 41, 0.82)';
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
-      ctx.beginPath();
-      ctx.roundRect(gx, gy, gw, gh, 8);
-      ctx.fill();
-      ctx.stroke();
-
-      const title = gw < 280 ? 'Oscilație θ(t)' : 'Osciloscop Torsional θ(t) & Prag Critic';
-      ctx.fillStyle = '#9e9eb8';
-      ctx.font = 'bold 10px Inter, sans-serif';
-      ctx.textAlign = 'left';
-      ctx.fillText(title, gx + 10, gy + 14);
-
-      const plotX = gx + 34;
-      const plotW = gw - 44;
-      const midY = gy + gh * 0.52;
-      const maxAngle = this.critThetaDeg * (Math.PI / 180) * 1.15;
-      const scaleY = (gh * 0.38) / maxAngle;
-
-      // Center reference
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.12)';
-      ctx.beginPath();
-      ctx.moveTo(plotX, midY);
-      ctx.lineTo(plotX + plotW, midY);
-      ctx.stroke();
-
-      // Critical Collapse Thresholds (+/- 38 deg)
-      const critPix = (this.critThetaDeg * (Math.PI / 180)) * scaleY;
-      ctx.save();
-      ctx.strokeStyle = '#ff1744aa';
-      ctx.setLineDash([3, 3]);
-      ctx.lineWidth = 1.2;
-
-      // Top threshold
-      ctx.beginPath();
-      ctx.moveTo(plotX, midY - critPix);
-      ctx.lineTo(plotX + plotW, midY - critPix);
-      ctx.stroke();
-
-      // Bottom threshold
-      ctx.beginPath();
-      ctx.moveTo(plotX, midY + critPix);
-      ctx.lineTo(plotX + plotW, midY + critPix);
-      ctx.stroke();
-      ctx.restore();
-
-      ctx.fillStyle = '#ff1744';
-      ctx.font = '7.5px JetBrains Mono, monospace';
-      ctx.textAlign = 'right';
-      ctx.fillText(`+${this.critThetaDeg}°`, plotX - 3, midY - critPix + 3);
-      ctx.fillText(`-${this.critThetaDeg}°`, plotX - 3, midY + critPix + 3);
-      ctx.fillText('0°', plotX - 3, midY + 3);
-
-      // Plot waveform history
-      ctx.beginPath();
-      ctx.strokeStyle = this.isCollapsed ? '#ff1744' : (Math.abs(this.theta * 180 / Math.PI) > 14 ? '#ff5252' : '#00e5ff');
-      ctx.lineWidth = 2.0;
-
-      for (let i = 0; i < this.historyLength; i++) {
-        const idx = (this.historyIndex + i) % this.historyLength;
-        const val = this.historyTheta[idx];
-        const xx = plotX + (i / this.historyLength) * plotW;
-        const yy = midY - val * scaleY;
-
-        if (i === 0) ctx.moveTo(xx, yy);
-        else ctx.lineTo(xx, yy);
-      }
-      ctx.stroke();
-    }
-
-    _drawPhasePortrait(ctx, gx, gy, gw, gh) {
-      ctx.fillStyle = 'rgba(15, 22, 41, 0.82)';
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
-      ctx.beginPath();
-      ctx.roundRect(gx, gy, gw, gh, 8);
-      ctx.fill();
-      ctx.stroke();
-
-      const title = gw < 280 ? 'Portret Fază (θ, ω)' : 'Portret de Fază (θ vs dθ/dt) — Ciclu Limită / Divergență';
-      ctx.fillStyle = '#9e9eb8';
-      ctx.font = 'bold 10px Inter, sans-serif';
-      ctx.textAlign = 'left';
-      ctx.fillText(title, gx + 10, gy + 14);
-
-      const cx = gx + gw * 0.50;
-      const cy = gy + gh * 0.54;
-      const maxTh = this.critThetaDeg * (Math.PI / 180) * 1.1;
-      const maxW = 5.0; // rad/s
-      const scaleX = (gw * 0.38) / maxTh;
-      const scaleY = (gh * 0.34) / maxW;
-
-      // Axes
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.12)';
-      ctx.beginPath();
-      ctx.moveTo(cx - gw * 0.42, cy);
-      ctx.lineTo(cx + gw * 0.42, cy);
-      ctx.moveTo(cx, cy - gh * 0.38);
-      ctx.lineTo(cx, cy + gh * 0.38);
-      ctx.stroke();
-
-      ctx.fillStyle = '#5c5e78';
-      ctx.font = '7.5px JetBrains Mono, monospace';
-      ctx.textAlign = 'right';
-      ctx.fillText('dθ/dt', cx - 4, cy - gh * 0.34);
-      ctx.fillText('θ', cx + gw * 0.42, cy - 4);
-
-      // Draw Phase Orbit
-      if (this.orbitPoints.length > 2) {
+      for (let frac of [0.05, 0.28, 0.52, 0.76]) {
+        const yF = fTopY + frac * (botY - fTopY);
+        const yB = bTopY + frac * (botY - bTopY);
         ctx.beginPath();
-        ctx.strokeStyle = this.isCollapsed ? 'rgba(255, 23, 68, 0.65)' : 'rgba(255, 171, 64, 0.65)';
-        ctx.lineWidth = 1.6;
-
-        for (let i = 0; i < this.orbitPoints.length; i++) {
-          const pt = this.orbitPoints[i];
-          const px = cx + pt.th * scaleX;
-          const py = cy - pt.w * scaleY;
-          if (i === 0) ctx.moveTo(px, py);
-          else ctx.lineTo(px, py);
-        }
+        ctx.moveTo(bX, yB);
+        ctx.lineTo(fX, yF);
         ctx.stroke();
       }
 
-      // Current operating dot
-      const curDotX = cx + this.theta * scaleX;
-      const curDotY = cy - this.omegaTheta * scaleY;
-
-      ctx.fillStyle = this.isCollapsed ? '#ff1744' : '#00e5ff';
+      // Front leg
+      ctx.strokeStyle = '#607d8b';
+      ctx.lineWidth = 4.5;
       ctx.beginPath();
-      ctx.arc(curDotX, curDotY, 5, 0, Math.PI * 2);
-      ctx.fill();
+      ctx.moveTo(fX, fTopY);
+      ctx.lineTo(fX, botY);
+      ctx.stroke();
 
-      // Legend note
-      ctx.fillStyle = '#5c5e78';
-      ctx.font = '8px Inter, sans-serif';
-      ctx.textAlign = 'center';
-      const statusNote = this.isCollapsed ? 'COLAPS TOTAL (PRĂBUȘIT)' : (this._getFlutterDerivativeA1() > 0 ? 'SPIRALĂ EXPANSIVĂ (FLUTTER DIVERGENT)' : 'CICLU STABIL / ATRASĂ LA ZERO');
-      ctx.fillText(statusNote, cx, gy + gh - 6);
+      // Concrete pier base in water
+      ctx.fillStyle = '#455a64';
+      ctx.fillRect(fX - 6, botY - 12, depthDX + 12, 14);
+      ctx.restore();
+    }
+
+    _drawSideSpan(ctx, xStart, xEnd, deckY, towerTopY, depthDX, depthDY) {
+      ctx.save();
+      const fTowerX = xStart < xEnd && xStart < 100 ? xEnd - depthDX * 0.5 : xStart - depthDX * 0.5;
+      const anchorX = xStart < 100 ? xStart : xEnd;
+
+      // Main cable to anchorage
+      ctx.strokeStyle = 'rgba(0, 229, 255, 0.5)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(fTowerX, towerTopY + depthDY * 0.5);
+      ctx.lineTo(anchorX, deckY + depthDY * 0.5);
+      ctx.stroke();
+
+      // Side span roadway
+      ctx.strokeStyle = '#37474f';
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.moveTo(xStart, deckY + depthDY * 0.5);
+      ctx.lineTo(xEnd, deckY + depthDY * 0.5);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    // =========================================================================
+    // BOTTOM-LEFT PANEL: AERODYNAMIC WIND TUNNEL CROSS-SECTION ZOOM
+    // =========================================================================
+    _drawWindTunnelInset(ctx, gx, gy, gw, gh) {
+      ctx.save();
+      ctx.fillStyle = 'rgba(13, 20, 38, 0.88)';
+      ctx.strokeStyle = 'rgba(0, 229, 255, 0.16)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.roundRect(gx, gy, gw, gh, 8);
+      ctx.fill();
+      ctx.stroke();
+      ctx.clip();
+
+      const isCompact = gw < 280;
+      ctx.fillStyle = '#00e5ff';
+      ctx.font = `bold ${isCompact ? 9 : 10}px Inter, sans-serif`;
+      ctx.textAlign = 'left';
+      ctx.fillText(
+        isCompact ? '🔬 Secțiune: Fluture Aeroelastic' : '🔬 Tunel Aerodinamic în Secțiune — Mecanismul de Auto-Excitație',
+        gx + 10,
+        gy + 15
+      );
+
+      const cx = gx + gw * 0.50;
+      const cy = gy + gh * 0.54;
+      const halfB = Math.min(gw * 0.28, 72);
+      const girderH = Math.max(14, halfB * 0.28);
+
+      // 1. Draw Airflow Streamlines separating around the solid plate girders
+      ctx.save();
+      for (const p of this.streamParticles) {
+        const px = gx + p.x * gw;
+        // Deflect streamlines around tilted deck
+        const dx = (px - cx) / (halfB + 10);
+        let deflect = 0;
+        if (Math.abs(dx) < 1.3) {
+          deflect = Math.sin(this.theta) * 18 * (1.3 - Math.abs(dx));
+        }
+        const py = cy + p.y * (gh * 0.34) + deflect;
+        const len = 10 + (this.windSpeed / 25.0) * 16;
+
+        ctx.strokeStyle = 'rgba(105, 240, 174, 0.28)';
+        ctx.lineWidth = p.size;
+        ctx.beginPath();
+        ctx.moveTo(px, py);
+        ctx.lineTo(px + len, py);
+        ctx.stroke();
+      }
+      ctx.restore();
+
+      // 2. Draw Alternating Vortices Above and Below the Deck
+      for (const v of this.vortices) {
+        const vx = cx + v.x * gw * 0.65;
+        const vy = cy + v.y * gh * 0.7;
+        ctx.strokeStyle = `rgba(255, 171, 64, ${v.life * 0.65})`;
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.arc(vx, vy, v.r, v.ang, v.ang + Math.PI * 1.35);
+        ctx.stroke();
+      }
+
+      // 3. Reference +/- 45 deg angle dial
+      ctx.save();
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.10)';
+      ctx.setLineDash([3, 3]);
+      ctx.beginPath();
+      ctx.moveTo(cx - halfB * 1.2, cy);
+      ctx.lineTo(cx + halfB * 1.2, cy);
+      ctx.stroke();
+      ctx.restore();
+
+      // 4. Draw Tilted Deck Cross-Section
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.rotate(this.theta);
+
+      if (this.deckType === 'h-girder') {
+        // Solid Steel Plate Girders (H-Section)
+        ctx.fillStyle = '#263238';
+        ctx.fillRect(-halfB, -4, halfB * 2, 8);
+        ctx.fillStyle = '#455a64';
+        ctx.strokeStyle = '#90a4ae';
+        ctx.lineWidth = 1.5;
+        // Left solid plate girder
+        ctx.fillRect(-halfB - 5, -girderH / 2, 8, girderH);
+        ctx.strokeRect(-halfB - 5, -girderH / 2, 8, girderH);
+        // Right solid plate girder
+        ctx.fillRect(halfB - 3, -girderH / 2, 8, girderH);
+        ctx.strokeRect(halfB - 3, -girderH / 2, 8, girderH);
+      } else if (this.deckType === 'truss') {
+        ctx.strokeStyle = '#00e5ff';
+        ctx.lineWidth = 1.5;
+        ctx.strokeRect(-halfB, -girderH * 0.6, halfB * 2, girderH * 1.2);
+        for (let i = -3; i < 3; i++) {
+          ctx.beginPath();
+          ctx.moveTo(i * (halfB / 3), -girderH * 0.6);
+          ctx.lineTo((i + 1) * (halfB / 3), girderH * 0.6);
+          ctx.stroke();
+        }
+      } else {
+        ctx.fillStyle = '#1c2638';
+        ctx.strokeStyle = '#69f0ae';
+        ctx.lineWidth = 1.8;
+        ctx.beginPath();
+        ctx.moveTo(-halfB, 0);
+        ctx.lineTo(-halfB * 0.75, -girderH * 0.35);
+        ctx.lineTo(halfB * 0.75, -girderH * 0.35);
+        ctx.lineTo(halfB, 0);
+        ctx.lineTo(halfB * 0.75, girderH * 0.35);
+        ctx.lineTo(-halfB * 0.75, girderH * 0.35);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+      }
+      ctx.restore();
+
+      // 5. Draw Aerodynamic Lift Force Arrows pushing in the EXACT direction of twisting velocity!
+      const cosT = Math.cos(this.theta);
+      const sinT = Math.sin(this.theta);
+      const rightEdgeX = cx + halfB * cosT;
+      const rightEdgeY = cy + halfB * sinT;
+      const leftEdgeX = cx - halfB * cosT;
+      const leftEdgeY = cy - halfB * sinT;
+
+      if (Math.abs(this.omegaTheta) > 0.04 && this.deckType === 'h-girder') {
+        const dir = Math.sign(this.omegaTheta);
+        const arrowLen = Math.min(34, 12 + Math.abs(this.omegaTheta) * 18);
+        // Right edge moves vertically with sign(omegaTheta), wind lift pushes in the SAME direction!
+        this.drawArrow(rightEdgeX, rightEdgeY, rightEdgeX, rightEdgeY + dir * arrowLen, '#ff5252', 2.2);
+        this.drawArrow(leftEdgeX, leftEdgeY, leftEdgeX, leftEdgeY - dir * arrowLen, '#ff5252', 2.2);
+      }
+
+      // Live Angle & Energy Injection readout at bottom of wind tunnel
+      const deg = (this.theta * 180) / Math.PI;
+      ctx.fillStyle = Math.abs(deg) > 25 ? '#ff5252' : '#ffab40';
+      ctx.font = 'bold 9.5px JetBrains Mono, monospace';
+      ctx.textAlign = 'left';
+      ctx.fillText(`Unghi: θ = ${deg >= 0 ? '+' : ''}${deg.toFixed(1)}° (Max ±45°)`, gx + 10, gy + gh - 8);
+
+      ctx.fillStyle = this.deckType === 'h-girder' ? '#ff5252' : '#69f0ae';
+      ctx.font = '8.5px Inter, sans-serif';
+      ctx.textAlign = 'right';
+      ctx.fillText(
+        this.deckType === 'h-girder'
+          ? '⚡ Forța aero împinge în direcția răsucirii!'
+          : '🛡️ Vântul trece liber (fără auto-excitație)',
+        gx + gw - 10,
+        gy + gh - 8
+      );
+
+      ctx.restore();
+    }
+
+    // =========================================================================
+    // BOTTOM-RIGHT PANEL: HISTORICAL TIMELINE (7 NOV 1940) & TELEMETRY
+    // =========================================================================
+    _drawTimelineAndTelemetry(ctx, gx, gy, gw, gh) {
+      ctx.save();
+      ctx.fillStyle = 'rgba(13, 20, 38, 0.88)';
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.09)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.roundRect(gx, gy, gw, gh, 8);
+      ctx.fill();
+      ctx.stroke();
+      ctx.clip();
+
+      const isCompact = gw < 280;
+      ctx.fillStyle = '#ffab40';
+      ctx.font = `bold ${isCompact ? 9 : 10}px Inter, sans-serif`;
+      ctx.textAlign = 'left';
+      ctx.fillText(
+        `⌚ Cronologia Colapsului (${this._getClockString()})`,
+        gx + 10,
+        gy + 15
+      );
+
+      const intact = this._countIntactCables();
+      const total = this.numSegments * 2;
+
+      const steps = [
+        {
+          active: this.phase >= 1,
+          done: this.phase > 1,
+          text: isCompact ? '1. Grinzi pline: separare flux & vârtejuri' : '09:45 — Grinzile pline separă fluxul în vârtejuri'
+        },
+        {
+          active: this.phase >= 2,
+          done: this.phase > 2,
+          text: isCompact ? '2. 10:00: Colierul alunecă -> Mod torsional' : '10:00 — Colierul alunecă -> declanșează torsiunea'
+        },
+        {
+          active: this.phase >= 2 && Math.abs(this.theta * 180 / Math.PI) > 15,
+          done: this.phase > 3,
+          text: isCompact ? '3. Fluture aeroelastic: vântul pompează energie' : '10:30 — Fluture aeroelastic: răsucire până la ±45°'
+        },
+        {
+          active: this.phase >= 3,
+          done: this.phase >= 4,
+          text: isCompact ? `4. Forfecare cabluri (${intact}/${total} intacte)` : `10:55 — Cablurile verticale cedează unul câte unul (${intact}/${total})`
+        },
+        {
+          active: this.phase >= 4,
+          done: this.phase >= 5,
+          text: isCompact ? '5. 11:00: Secțiunea de 600 ft cade în apă!' : '11:00 — Secțiunea de 600 ft (183m) se rupe, apoi tot podul!'
+        }
+      ];
+
+      const startY = gy + 28;
+      const availH = gh - 34;
+      const rowH = Math.min(22, availH / steps.length);
+
+      for (let i = 0; i < steps.length; i++) {
+        const st = steps[i];
+        const y = startY + i * rowH;
+
+        ctx.fillStyle = st.done ? '#69f0ae' : (st.active ? '#ff5252' : '#5c5e78');
+        ctx.beginPath();
+        ctx.arc(gx + 14, y + 4, 3.5, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.font = `${st.active ? 'bold ' : ''}${isCompact ? 8 : 8.8}px Inter, sans-serif`;
+        ctx.fillStyle = st.active ? '#e8eaf6' : '#6c7086';
+        ctx.textAlign = 'left';
+        ctx.fillText(st.text, gx + 24, y + 7);
+      }
+
+      ctx.restore();
     }
   }
 

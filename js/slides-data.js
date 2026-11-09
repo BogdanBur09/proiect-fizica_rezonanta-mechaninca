@@ -244,69 +244,48 @@
       simType: 'tacoma-narrows',
       theoryHTML: `
         <div class="theory-section">
-          <h3>1. Evenimentul Istoric și Mitul Rezonanței</h3>
-          <p>Pe 7 noiembrie 1940, la doar 4 luni de la inaugurare, podul suspendat Tacoma Narrows
-          (statul Washington, SUA — pe atunci al treilea cel mai lung din lume) s-a prăbușit
-          spectaculos sub acțiunea unui vânt moderat de doar \\(68\\text{ km/h}\\) (\\(19\\text{ m/s}\\), forța 8 Beaufort).</p>
-          <p><em>Mitul manualelor vechi:</em> Multe manuale au prezentat colapsul ca pe o „rezonanță forțată mecanică pură”
-          generată de desprinderea ritmică a vârtejurilor de aer. <strong>Analiza modernă (Billah & Scanlan, 1991)</strong>
-          a demonstrat că fenomenul real a fost mult mai periculos: <strong>fluture aeroelastic torsional (torsional flutter)</strong>
-          cu <strong>auto-excitație și amortizare negativă</strong>.</p>
-        </div>
-
-        <div class="theory-section">
-          <h3>2. Desprinderea de Vârtejuri Kármán (Vortex Shedding)</h3>
-          <p>La trecerea fluidului (aerul) pe lângă un corp bont (grinzile pline de oțel în formă de „H” ale tablierului),
-          se formează o dâră alternantă de vârtejuri periodice cu frecvența Strouhal:</p>
-          <div class="equation-card">
-            <div class="equation-card__label">Frecvența de Desprindere Strouhal</div>
-            $$f_s = \\frac{\\text{St} \\cdot v}{D}$$
-          </div>
-          <p>unde:
-            <br>• \\(\\text{St} \\approx 0{,}13\\) — numărul adimensional Strouhal pentru profilul H
-            <br>• \\(v = 19\\text{ m/s}\\) — viteza vântului
-            <br>• \\(D = 2{,}4\\text{ m}\\) — înălțimea grinzii de oțel a tablierului
-          </p>
-          <p>La această viteză, \\(f_s \\approx 1{,}0\\text{ Hz}\\), mult mai mare decât frecvența de torsiune la care s-a rupt structura (\\(f_{\\text{tors}} \\approx 0{,}20\\text{ Hz}\\)). Vârtejurile Kármán au inițiat mișcarea verticală, dar distrugerea finală a fost cauzată de cuplajul torsional aeroelastic!</p>
-        </div>
-
-        <div class="theory-section">
-          <h3>3. Fluturele Aeroelastic (Torsional Flutter) și Amortizarea Negativă</h3>
-          <p>Când tablierul începe să se răsucească cu unghiul \\(\\theta(t)\\), profilul nesimetric în curentul de aer
-          generează un cuplu aerodinamic forțat \\(M_{\\text{aero}}\\):</p>
-          <div class="equation-card">
-            <div class="equation-card__label">Ecuația Mișcării de Torsiune</div>
-            $$I \\ddot{\\theta} + c_\\theta \\dot{\\theta} + k_\\theta \\theta = M_{\\text{aero}}(\\theta, \\dot{\\theta}, v)$$
-          </div>
-          <p>Prin derivatele aeroelastice Scanlan, cuplul aerodinamic conține un termen proporțional cu viteza unghiulară \\(\\dot{\\theta}\\):</p>
-          <div class="equation-card">
-            <div class="equation-card__label">Amortizarea Efectivă a Sistemului</div>
-            $$c_{\\text{eff}}(v) = c_\\theta - \\frac{1}{2} \\rho v B^3 A_1^*$$
-          </div>
-          <p>unde \\(B = 11{,}9\\text{ m}\\) este lățimea tablierului, iar \\(A_1^*\\) este coeficientul aeroelastic de flutter.
-          Pentru secțiunea în formă de „H” masiv a podului Tacoma, \\(A_1^* \\gt 0\\) (forța acționează <em>în fază cu viteza</em>).</p>
-        </div>
-
-        <div class="theory-section">
-          <h3>4. Instabilitatea Divergentă (Auto-Excitație)</h3>
-          <p>Când viteza vântului depășește viteza critică (\\(v \\gt v_{\\text{crit}} \\approx 16\\text{ m/s}\\)):</p>
-          <div class="equation-card">
-            <div class="equation-card__label">Condiția de Flutter Divergent</div>
-            $$c_{\\text{eff}} \\lt 0 \\quad \\Longrightarrow \\quad \\theta(t) = \\theta_0 \\, e^{\\gamma_{\\text{net}} t} \\cos(\\omega_{\\text{tors}} t - \\phi) \\quad (\\gamma_{\\text{net}} \\gt 0)$$
-          </div>
-          <p>Sistemul extrage mai multă energie mecanică din vânt în fiecare semielipsă decât poate disipa prin frecare structurală internă. Amplitudinea unghiulară \\(\\theta(t)\\) crește exponențial (a atins peste \\(\\pm 35^\\circ\\)) până când cablurile verticale și niturile de oțel cedează ireversibil!</p>
-        </div>
-
-        <div class="theory-section">
-          <h3>5. Lecția Inginerească: Tacoma 1950 și Podurile Moderne</h3>
+          <h3>1. Realitatea Fizică: Fluturele Aeroelastic (Aeroelastic Flutter)</h3>
+          <p>Pe 7 noiembrie 1940, sub un vânt de \\(68\\text{ km/h}\\) (\\(19\\text{ m/s}\\)), prăbușirea podului Tacoma Narrows nu a fost o simplă rezonanță forțată, ci o <strong>vibrație auto-excitată (fluture aeroelastic)</strong> declanșată în etape:</p>
           <ul class="theory-points">
-            <li><strong>Podul Nou (1950):</strong> Reconstruit cu <em>grinzi cu zăbrele deschise (deep stiffening truss)</em> de 10 m înălțime. Vântul trece nestingherit prin structură, anulând portanța asimetrică (\\(A_1^* \\le 0\\)).</li>
-            <li><strong>Podurile Moderne (ex. Akashi Kaikyo, Storebælt):</strong> Folosesc <em>tabliere casetate aerodinamice (aerofoil box girder)</em> profilate ca aripa de avion, asigurând stabilitate la vânturi de peste 250 km/h.</li>
+            <li><strong>Separarea Fluxului și Vârtejurile:</strong> Când vântul a lovit <em>grinzile pline din plăci de oțel</em> (solid plate girders, înalte de \\(2{,}4\\text{ m}\\)), curentul de aer nu a putut trece prin structură și s-a separat violent, creând vârtejuri alternante deasupra și dedesubtul tablierului:
+              $$f_s = \\frac{\\text{St} \\cdot v}{D}$$
+            </li>
+            <li><strong>Ora 10:00 AM — Alunecarea Colierului Central:</strong> Un colier de prindere (cable band) al cablului principal de la mijlocul podului a alunecat din cauza tensiunii, aruncând podul în dezechilibru asimetric și <strong>declanșând modul de răsucire (torsional)</strong> în două jumătăți care oscilau în antifază!</li>
           </ul>
         </div>
 
+        <div class="theory-section">
+          <h3>2. Mecanismul Auto-Excitației: Vântul Pompează Energie</h3>
+          <p>Pe măsură ce tablierul se înclina cu unghiul \\(\\theta\\), acesta modifica continuu unghiul de atac sub care vântul lovea podul, alterând portanța (lift) și rezistența aerodinamică (drag).</p>
+          <div class="equation-card">
+            <div class="equation-card__label">Ecuația Torsiunii Auto-Excitate</div>
+            $$I \\ddot{\\theta} + c_\\theta \\dot{\\theta} + k_\\theta(\\theta) = M_{\\text{aero}}(\\theta, \\dot{\\theta}, v)$$
+          </div>
+          <p>Această forță aerodinamică împingea podul <strong>exact în direcția în care acesta deja se răsucea</strong> (\\(M_{\\text{aero}} \\cdot \\dot{\\theta} \\gt 0\\)). În loc să amortizeze mișcarea, vântul <strong>pompa activ energie în torsiune la fiecare ciclu</strong>:</p>
+          <div class="equation-card">
+            <div class="equation-card__label">Amortizarea Efectivă Negativă (Flutter)</div>
+            $$c_{\\text{eff}}(v) = c_\\theta - \\frac{1}{2}\\rho v B^3 A_1^* \\lt 0 \\quad \\Longrightarrow \\quad E_{\\text{ciclu}} = \\oint M_{\\text{aero}} \\, d\\theta \\gt 0$$
+          </div>
+        </div>
+
+        <div class="theory-section">
+          <h3>3. Cronologia Colapsului (Ora 10:00 AM – 11:09 AM)</h3>
+          <ul class="theory-points">
+            <li><strong>Răsucire Violentă până la \\(\\pm 45^\\circ\\):</strong> Podul a început să se răsucească extrem de violent, înclinându-se alternativ la stânga și la dreapta cu <strong>până la \\(45^\\circ\\)</strong> (cu o diferență de nivel de peste \\(8{,}5\\text{ m}\\) între trotuare).</li>
+            <li><strong>Forfecarea Cablurilor Verticale (Suspenders):</strong> Solicitarea extremă a forfecat rapid cablurile verticale de suspensie care susțineau carosabilul de cablurile principale.</li>
+            <li><strong>Cedarea în Cascadă (Unul câte Unul):</strong> Pe măsură ce cablurile verticale pocneau și se rupeau <em>unul câte unul</em>, greutatea nesusținută a carosabilului din beton și oțel a devenit prea mare pentru cablurile rămase.</li>
+            <li><strong>Ora 11:00 AM — Prăbușirea Secțiunii de 600 de Picioare (183 m):</strong> O secțiune masivă de \\(600\\text{ ft}\\) (\\(\\approx 183\\text{ m}\\)) din deschiderea centrală s-a smuls complet și s-a prăbușit în apele strâmtorii Tacoma Narrows.</li>
+            <li><strong>Ora 11:09 AM — Colapsul Total:</strong> La scurt timp după aceea, dezechilibrul șocului a rupt în lanț restul cablurilor verticale, iar întregul rest al deschiderii principale s-a prăbușit în apă.</li>
+          </ul>
+        </div>
+
+        <div class="theory-section">
+          <h3>4. Soluția Inginerească: Cum Evităm Fluturele Aeroelastic</h3>
+          <p>La reconstrucția din 1950, grinzile pline au fost înlocuite cu <strong>grinzi deschise cu zăbrele (truss)</strong> prin care vântul trece fără să se separe în vârtejuri portante, iar la podurile moderne se folosesc <strong>casete aerodinamice profilate</strong> care stabilizează activ tablierul.</p>
+        </div>
+
         <div class="theory-callout">
-          <strong>Experiment în Simulare:</strong> Comută profilul pe <em>„Grindă Plină H (Tacoma 1940)"</em> la \\(v = 19\\text{ m/s}\\) pentru a asista la divergența torsională și ruperea cablului. Apoi comută pe <em>„Grindă cu Zăbrele (1950)"</em> pentru a vedea cum aceeași viteză a vântului devine complet inofensivă!
+          <strong>Experiment în Simulare:</strong> Urmărește atât <em>vederea 3D pe lungimea podului</em> (cu cele 24 de segmente și cablurile verticale care se rup unul câte unul), cât și <em>tunelul aerodinamic în secțiune</em> (jos-stânga), unde vezi cum vârtejurile și portanța împing tablierul exact în direcția în care se rotește până la \\(\\pm 45^\\circ\\)!
         </div>
       `,
       simConfig: {
