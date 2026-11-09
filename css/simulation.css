@@ -1,0 +1,331 @@
+/* ============================================================
+   SIMULATION.CSS — Right Panel: Canvas, HUD & Controls
+   ============================================================ */
+
+.slide__simulation {
+  background: var(--bg-primary);
+  position: relative;
+}
+
+/* --- Canvas Container --- */
+.sim-canvas-wrap {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  min-height: 0;
+}
+
+.sim-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: var(--bg-primary);
+}
+
+/* --- HUD Overlay (top-right info) --- */
+.sim-hud {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  color: var(--text-dim);
+  pointer-events: none;
+  z-index: 5;
+}
+
+.sim-hud__item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(8, 12, 24, 0.7);
+  backdrop-filter: blur(8px);
+  padding: 3px 8px;
+  border-radius: var(--radius-xs);
+  border: 1px solid var(--border-color);
+}
+
+.sim-hud__label {
+  color: var(--text-dim);
+}
+
+.sim-hud__value {
+  color: var(--accent-cyan);
+  font-weight: 600;
+}
+
+.sim-hud__value--warn {
+  color: var(--accent-amber);
+}
+
+.sim-hud__value--danger {
+  color: var(--accent-red);
+  text-shadow: 0 0 8px rgba(255, 82, 82, 0.5);
+}
+
+/* --- Controls Bar (bottom of simulation panel) --- */
+.sim-controls {
+  background: var(--bg-secondary);
+  border-top: 1px solid var(--border-color);
+  padding: 10px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+/* Row of sliders */
+.sim-controls__row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+/* Individual slider group */
+.sim-slider-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  min-width: 140px;
+}
+
+.sim-slider-group__label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  min-width: fit-content;
+  font-family: var(--font-mono);
+}
+
+.sim-slider-group__label .katex {
+  font-size: 0.82rem;
+}
+
+.sim-slider-group input[type="range"] {
+  flex: 1;
+  height: 4px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: var(--border-color);
+  border-radius: 2px;
+  outline: none;
+  cursor: pointer;
+  min-width: 50px;
+}
+
+.sim-slider-group input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--accent-cyan);
+  border: 2px solid var(--bg-primary);
+  box-shadow: 0 0 6px var(--accent-cyan-glow);
+  cursor: pointer;
+}
+
+.sim-slider-group input[type="range"]::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--accent-cyan);
+  border: 2px solid var(--bg-primary);
+  box-shadow: 0 0 6px var(--accent-cyan-glow);
+  cursor: pointer;
+}
+
+.sim-slider-group__value {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--accent-amber);
+  min-width: 45px;
+  text-align: right;
+  font-weight: 600;
+}
+
+/* Action buttons row */
+.sim-controls__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* Preset row */
+.sim-controls__row--presets {
+  padding-top: 4px;
+  border-top: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.sim-controls__tag {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-dim);
+  margin-right: 4px;
+}
+
+/* Badges */
+.sim-controls__badges {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.sim-badge {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: var(--radius-xs);
+  border: 1px solid var(--border-color);
+  background: var(--bg-card);
+}
+
+.sim-badge--amber {
+  color: var(--accent-amber);
+  border-color: rgba(255, 171, 64, 0.3);
+  background: var(--accent-amber-dim);
+}
+
+.sim-badge--cyan {
+  color: var(--accent-cyan);
+  border-color: rgba(0, 229, 255, 0.3);
+  background: var(--accent-cyan-dim);
+}
+
+.sim-controls__hint {
+  font-size: 0.72rem;
+  color: var(--accent-cyan);
+  opacity: 0.85;
+  margin-left: 8px;
+}
+
+.sim-btn {
+  padding: 5px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-color);
+  background: var(--bg-card);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  user-select: none;
+}
+
+.sim-btn:hover {
+  border-color: var(--accent-cyan);
+  background: var(--accent-cyan-dim);
+  color: var(--accent-cyan);
+}
+
+.sim-btn:active {
+  transform: scale(0.95);
+}
+
+.sim-btn--primary {
+  background: var(--accent-cyan-dim);
+  border-color: var(--border-accent);
+  color: var(--accent-cyan);
+}
+
+.sim-btn--primary:hover {
+  background: rgba(0, 229, 255, 0.2);
+  box-shadow: 0 0 12px var(--accent-cyan-glow);
+}
+
+.sim-btn--danger {
+  color: var(--accent-red);
+  border-color: rgba(255, 82, 82, 0.2);
+}
+
+.sim-btn--danger:hover {
+  background: var(--accent-red-dim);
+  border-color: var(--accent-red);
+}
+
+.sim-btn--preset {
+  color: var(--accent-amber);
+  border-color: rgba(255, 171, 64, 0.2);
+}
+
+.sim-btn--preset:hover {
+  background: var(--accent-amber-dim);
+  border-color: var(--accent-amber);
+}
+
+/* --- Placeholder Simulation --- */
+.sim-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  text-align: center;
+  gap: 16px;
+  padding: 40px;
+  background:
+    radial-gradient(circle at center, var(--accent-cyan-dim) 0%, transparent 50%),
+    var(--bg-primary);
+}
+
+.sim-placeholder__icon {
+  font-size: 3rem;
+  opacity: 0.4;
+  animation: placeholderPulse 3s ease-in-out infinite;
+}
+
+@keyframes placeholderPulse {
+  0%, 100% { opacity: 0.3; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(1.05); }
+}
+
+.sim-placeholder__title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+.sim-placeholder__desc {
+  font-size: 0.82rem;
+  color: var(--text-dim);
+  max-width: 320px;
+  line-height: 1.6;
+}
+
+/* --- Responsive --- */
+@media (max-width: 900px) {
+  .sim-controls {
+    padding: 8px 12px;
+  }
+  .sim-slider-group {
+    min-width: 110px;
+  }
+}
+
+@media (max-width: 600px) {
+  .sim-controls {
+    padding: 6px 10px;
+    gap: 6px;
+  }
+  .sim-slider-group__label {
+    font-size: 0.65rem;
+  }
+  .sim-btn {
+    padding: 4px 10px;
+    font-size: 0.7rem;
+  }
+}

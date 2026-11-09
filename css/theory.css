@@ -1,0 +1,276 @@
+/* ============================================================
+   THEORY.CSS — Left Panel: Theory Content & KaTeX Formulas
+   ============================================================ */
+
+.slide__theory {
+  background: var(--bg-secondary);
+  padding: 28px 28px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+/* --- Header Section --- */
+.slide__theory-header {
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.slide__category {
+  display: inline-block;
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--accent-cyan);
+  background: var(--accent-cyan-dim);
+  border: 1px solid var(--border-accent);
+  border-radius: 20px;
+  padding: 3px 12px;
+  margin-bottom: 10px;
+}
+
+.slide__category--danger {
+  color: var(--accent-red);
+  background: var(--accent-red-dim);
+  border-color: rgba(255, 82, 82, 0.25);
+}
+
+.slide__category--advantage {
+  color: var(--accent-green);
+  background: var(--accent-green-dim);
+  border-color: rgba(105, 240, 174, 0.25);
+}
+
+.slide__category--engineering {
+  color: var(--accent-amber);
+  background: var(--accent-amber-dim);
+  border-color: rgba(255, 171, 64, 0.25);
+}
+
+.slide__theory-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.35;
+  letter-spacing: -0.01em;
+}
+
+/* --- Content Sections --- */
+.slide__theory-content {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 8px;
+}
+
+.theory-section {
+  margin-bottom: 20px;
+}
+
+.theory-section h3 {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--accent-cyan);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.theory-section h3::before {
+  content: '';
+  display: inline-block;
+  width: 3px;
+  height: 14px;
+  background: var(--accent-cyan);
+  border-radius: 2px;
+  box-shadow: 0 0 8px var(--accent-cyan-glow);
+}
+
+.theory-section p {
+  font-size: 0.88rem;
+  color: var(--text-secondary);
+  line-height: 1.7;
+  margin-bottom: 10px;
+}
+
+.theory-section strong {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.theory-section em {
+  color: var(--accent-amber);
+  font-style: normal;
+  font-weight: 500;
+}
+
+/* --- Equation Cards --- */
+.equation-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-left: 3px solid var(--accent-cyan);
+  border-radius: var(--radius-md);
+  padding: 14px 18px;
+  margin: 14px 0;
+  position: relative;
+  overflow: hidden;
+}
+
+.equation-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, var(--accent-cyan-dim) 0%, transparent 60%);
+  pointer-events: none;
+}
+
+.equation-card .katex-display {
+  margin: 4px 0;
+}
+
+.equation-card__label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--accent-cyan);
+  margin-bottom: 6px;
+  position: relative;
+}
+
+/* --- Key Points / Bullet Lists --- */
+.theory-points {
+  list-style: none;
+  margin: 10px 0;
+  padding: 0;
+}
+
+.theory-points li {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  line-height: 1.65;
+  padding: 5px 0 5px 20px;
+  position: relative;
+}
+
+.theory-points li::before {
+  content: '▸';
+  position: absolute;
+  left: 0;
+  color: var(--accent-cyan);
+  font-weight: bold;
+}
+
+/* --- Info Callout --- */
+.theory-callout {
+  background: var(--accent-amber-dim);
+  border: 1px solid rgba(255, 171, 64, 0.2);
+  border-radius: var(--radius-md);
+  padding: 12px 16px;
+  margin: 14px 0;
+  font-size: 0.82rem;
+  color: var(--accent-amber);
+  line-height: 1.6;
+}
+
+.theory-callout::before {
+  content: '💡 ';
+}
+
+/* --- Placeholder Theory (Slides 2-15) --- */
+.theory-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  flex: 1;
+  gap: 16px;
+  padding: 40px 20px;
+  opacity: 0.7;
+}
+
+.theory-placeholder__icon {
+  font-size: 2.5rem;
+  opacity: 0.5;
+}
+
+.theory-placeholder__text {
+  font-size: 0.9rem;
+  color: var(--text-dim);
+  max-width: 300px;
+  line-height: 1.6;
+}
+
+.theory-placeholder__topics {
+  text-align: left;
+  list-style: none;
+  padding: 0;
+  margin-top: 8px;
+}
+
+.theory-placeholder__topics li {
+  font-size: 0.8rem;
+  color: var(--text-dim);
+  padding: 3px 0 3px 16px;
+  position: relative;
+}
+
+.theory-placeholder__topics li::before {
+  content: '○';
+  position: absolute;
+  left: 0;
+  color: var(--accent-cyan);
+  font-size: 0.6rem;
+  top: 5px;
+}
+
+/* --- KaTeX Overrides --- */
+.slide__theory .katex {
+  font-size: 1em;
+  color: var(--text-primary);
+}
+
+.slide__theory .katex-display {
+  margin: 12px 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 4px 0;
+}
+
+.slide__theory .katex-display > .katex {
+  font-size: 1.1em;
+}
+
+/* --- Responsive --- */
+@media (max-width: 900px) {
+  .slide__theory {
+    padding: 16px 18px 20px;
+  }
+  .slide__theory-title {
+    font-size: 1.05rem;
+  }
+  .theory-section p {
+    font-size: 0.82rem;
+  }
+}
+
+@media (max-width: 600px) {
+  .slide__theory {
+    padding: 12px 14px 16px;
+  }
+  .slide__theory-title {
+    font-size: 0.95rem;
+  }
+  .equation-card {
+    padding: 10px 12px;
+  }
+}

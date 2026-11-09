@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+  <meta name="description" content="Proiect interactiv de fizică: Rezonanța Mecanică — Consecințe și Avantaje. Simulări interactive, formule și teorie.">
+  <meta name="author" content="Buruiana Bogdan-Ioan">
+  <title>Rezonanța Mecanică — Consecințe și Avantaje | Buruiana Bogdan-Ioan</title>
+
+  <!-- Favicon (inline SVG) -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='0.9em' font-size='90'>🔬</text></svg>">
+
+  <!-- Google Fonts: Inter + JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- KaTeX CSS + JS (CDN - without integrity attributes to avoid hash mismatch) -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+
+  <!-- Project CSS -->
+  <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="css/topbar.css">
+  <link rel="stylesheet" href="css/theory.css">
+  <link rel="stylesheet" href="css/simulation.css">
+  <link rel="stylesheet" href="css/modal.css">
+</head>
+<body>
+
+  <div id="app-container">
+
+    <!-- ===== TOP BAR ===== -->
+    <header class="topbar">
+      <div class="topbar__left">
+        <h1 class="topbar__title">Rezonanța Mecanică — Consecințe și Avantaje</h1>
+        <span class="topbar__author">Buruiana Bogdan-Ioan</span>
+      </div>
+
+      <div class="topbar__center">
+        <button class="topbar__nav-btn" id="prev-btn" title="Slide anterior (←)" disabled>‹</button>
+        <div class="topbar__slide-info">
+          <select id="slide-select" title="Salt la slide"></select>
+          <span class="topbar__slide-counter">/ 15</span>
+        </div>
+        <button class="topbar__nav-btn" id="next-btn" title="Slide următor (→)">›</button>
+      </div>
+
+      <div class="topbar__right">
+        <div class="topbar__scale">
+          <span class="topbar__scale-label">Scală</span>
+          <input type="range" id="scale-slider" min="75" max="125" step="5" value="100" title="Zoom UI (dublu-click pentru reset)">
+          <span id="scale-value">100%</span>
+        </div>
+        <button class="topbar__settings-btn" id="settings-btn" title="Setări (fallback)">⚙</button>
+      </div>
+    </header>
+
+    <!-- ===== SLIDES CONTAINER ===== -->
+    <main class="slide-wrapper" id="slide-wrapper">
+      <!-- Slides are built dynamically by app.js from SlidesData -->
+    </main>
+
+    <!-- ===== SETTINGS MODAL ===== -->
+    <div class="settings-modal" id="settings-modal">
+      <div class="settings-modal__backdrop"></div>
+      <div class="settings-modal__content">
+        <div class="settings-modal__header">
+          <h3>Setări</h3>
+          <button class="settings-modal__close" id="settings-close" title="Închide">×</button>
+        </div>
+        <div class="settings-modal__body">
+          <!-- Built dynamically by settings-manager.js -->
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ===== PROJECT JS (order matters) ===== -->
+  <script src="js/scale-manager.js"></script>
+  <script src="js/settings-manager.js"></script>
+  <script src="js/slides-data.js"></script>
+  <script src="js/simulations/base-sim.js"></script>
+  <script src="js/simulations/placeholder-sim.js"></script>
+  <script src="js/simulations/slide1-forced-osc.js"></script>
+  <script src="js/app.js"></script>
+
+</body>
+</html>

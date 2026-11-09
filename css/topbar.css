@@ -1,0 +1,302 @@
+/* ============================================================
+   TOPBAR.CSS — Top Navigation Bar & Controls
+   ============================================================ */
+
+.topbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: var(--topbar-height);
+  background: linear-gradient(180deg, var(--bg-secondary) 0%, rgba(15, 22, 41, 0.95) 100%);
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  z-index: 1000;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  box-shadow: var(--shadow-md), inset 0 -1px 0 var(--border-accent);
+}
+
+/* --- Left Section: Title + Author --- */
+.topbar__left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex: 1;
+  min-width: 0;
+}
+
+.topbar__title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--accent-cyan);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  letter-spacing: 0.02em;
+  text-shadow: 0 0 24px var(--accent-cyan-glow);
+}
+
+.topbar__author {
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  padding: 3px 12px;
+  background: var(--accent-cyan-dim);
+  border-radius: 20px;
+  border: 1px solid var(--border-accent);
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  flex-shrink: 0;
+}
+
+/* --- Center Section: Navigation --- */
+.topbar__center {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.topbar__nav-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-color);
+  background: var(--bg-card);
+  color: var(--text-primary);
+  font-size: 1.1rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-fast);
+  font-family: var(--font-sans);
+  line-height: 1;
+  user-select: none;
+}
+
+.topbar__nav-btn:hover:not(:disabled) {
+  border-color: var(--accent-cyan);
+  background: var(--accent-cyan-dim);
+  color: var(--accent-cyan);
+  box-shadow: 0 0 12px var(--accent-cyan-glow);
+}
+
+.topbar__nav-btn:active:not(:disabled) {
+  transform: scale(0.92);
+}
+
+.topbar__nav-btn:disabled {
+  opacity: 0.25;
+  cursor: not-allowed;
+}
+
+.topbar__slide-info {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  padding: 0 4px;
+}
+
+#slide-select {
+  background: var(--bg-card);
+  color: var(--accent-amber);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: 4px 8px;
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  outline: none;
+  transition: border-color var(--transition-fast);
+  -webkit-appearance: none;
+  appearance: none;
+  min-width: 52px;
+  text-align: center;
+}
+
+#slide-select option {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  padding: 4px;
+}
+
+#slide-select:hover,
+#slide-select:focus {
+  border-color: var(--accent-cyan);
+  box-shadow: 0 0 8px var(--accent-cyan-glow);
+}
+
+.topbar__slide-counter {
+  color: var(--text-dim);
+  font-weight: 400;
+}
+
+/* --- Right Section: Scale + Settings --- */
+.topbar__right {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex: 1;
+  justify-content: flex-end;
+}
+
+/* Scale Control */
+.topbar__scale {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+}
+
+.topbar__scale-label {
+  white-space: nowrap;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 600;
+}
+
+#scale-slider {
+  width: 80px;
+  height: 4px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: linear-gradient(90deg, var(--border-color), var(--accent-cyan-dim));
+  border-radius: 2px;
+  outline: none;
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+#scale-slider:hover {
+  background: linear-gradient(90deg, var(--border-accent), var(--accent-cyan));
+}
+
+#scale-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--accent-cyan);
+  border: 2px solid var(--bg-primary);
+  box-shadow: 0 0 10px var(--accent-cyan-glow);
+  cursor: pointer;
+  transition: transform var(--transition-fast);
+}
+
+#scale-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
+}
+
+#scale-slider::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--accent-cyan);
+  border: 2px solid var(--bg-primary);
+  box-shadow: 0 0 10px var(--accent-cyan-glow);
+  cursor: pointer;
+}
+
+#scale-value {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--accent-cyan);
+  min-width: 3.5ch;
+  text-align: right;
+  font-weight: 600;
+}
+
+/* Settings Button */
+.topbar__settings-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-color);
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  font-size: 1.1rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-normal);
+  line-height: 1;
+}
+
+.topbar__settings-btn:hover {
+  border-color: var(--accent-amber);
+  background: var(--accent-amber-dim);
+  color: var(--accent-amber);
+  transform: rotate(45deg);
+  box-shadow: 0 0 12px var(--accent-amber-glow);
+}
+
+.topbar__settings-btn:active {
+  transform: rotate(90deg) scale(0.9);
+}
+
+/* --- Responsive --- */
+@media (max-width: 1024px) {
+  .topbar {
+    padding: 0 14px;
+    gap: 8px;
+  }
+  .topbar__title {
+    font-size: 0.85rem;
+  }
+  #scale-slider {
+    width: 60px;
+  }
+}
+
+@media (max-width: 900px) {
+  .topbar {
+    padding: 0 10px;
+  }
+  .topbar__title {
+    font-size: 0.78rem;
+  }
+  .topbar__author {
+    display: none;
+  }
+  .topbar__scale-label {
+    display: none;
+  }
+  #scale-slider {
+    width: 50px;
+  }
+}
+
+@media (max-width: 600px) {
+  .topbar {
+    padding: 0 8px;
+  }
+  .topbar__left {
+    flex: 0 1 auto;
+  }
+  .topbar__title {
+    font-size: 0.72rem;
+    max-width: 130px;
+  }
+  .topbar__scale {
+    display: none;
+  }
+  .topbar__nav-btn {
+    width: 28px;
+    height: 28px;
+    font-size: 1rem;
+  }
+  .topbar__settings-btn {
+    width: 30px;
+    height: 30px;
+  }
+}
