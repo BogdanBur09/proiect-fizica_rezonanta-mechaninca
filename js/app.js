@@ -194,6 +194,10 @@
           simHTML = this._buildSlide6SimPanel(data);
         } else if (data.simType === 'rotating-machinery') {
           simHTML = this._buildSlide7SimPanel(data);
+        } else if (data.simType === 'helicopter-resonance') {
+          simHTML = this._buildSlide8SimPanel(data);
+        } else if (data.simType === 'tuned-mass-damper') {
+          simHTML = this._buildSlide9SimPanel(data);
         } else {
           simHTML = this._buildPlaceholderSimPanel(data);
         }
@@ -595,6 +599,123 @@
       `;
     },
 
+    _buildSlide8SimPanel(data) {
+      return `
+        <div class="slide__simulation">
+          <div class="sim-canvas-wrap">
+            <canvas class="sim-canvas" id="sim-canvas-8"></canvas>
+          </div>
+          <div class="sim-controls">
+            <!-- Row 1: Sliders -->
+            <div class="sim-controls__row">
+              <div class="sim-control-group">
+                <label class="sim-label" for="sim8-rpm">
+                  <span class="sim-label__text">Turație Rotor \\(\\Omega\\):</span>
+                  <span class="sim-label__value" id="sim8-rpm-val">320 RPM (5.33 Hz)</span>
+                </label>
+                <input class="sim-slider" type="range" id="sim8-rpm" min="180" max="460" step="5" value="320">
+              </div>
+
+              <div class="sim-control-group">
+                <label class="sim-label" for="sim8-damper">
+                  <span class="sim-label__text">Eficiență Amortizoare Lead-Lag:</span>
+                  <span class="sim-label__value" id="sim8-damper-val">100% (Funcțional)</span>
+                </label>
+                <input class="sim-slider" type="range" id="sim8-damper" min="4" max="100" step="2" value="100">
+              </div>
+            </div>
+
+            <!-- Row 2: Scenario Presets & Pilot Maneuvers -->
+            <div class="sim-controls__presets">
+              <span class="sim-presets-title">Scenarii & Comenzi Pilot:</span>
+              <button class="sim-btn sim-btn--preset" id="sim8-preset-healthy">🛡️ Amortizoare 100% (Sigur)</button>
+              <button class="sim-btn sim-btn--danger" id="sim8-preset-failed">⚠️ Amortizor Spart (Defect 6%)</button>
+              <button class="sim-btn" id="sim8-btn-bump">⚡ Șoc Asimetric Sol (Bump)</button>
+              <button class="sim-btn sim-btn--primary" id="sim8-btn-liftoff">🚁 Decolare de Urgență (Lift-off)</button>
+              <button class="sim-btn" id="sim8-btn-brake">🛑 Tăiere Motor & Frână</button>
+            </div>
+
+            <!-- Row 3: Action Buttons & Live Indicators -->
+            <div class="sim-controls__actions">
+              <button class="sim-btn sim-btn--primary" id="sim8-play">⏸ Pauză</button>
+              <button class="sim-btn sim-btn--danger" id="sim8-reset">↺ Reset</button>
+
+              <div class="sim-controls__badges">
+                <span class="sim-badge sim-badge--cyan" id="sim8-rpm-badge">320 RPM</span>
+                <span class="sim-badge sim-badge--cyan" id="sim8-g-badge">Fuselaj: 0.05 g</span>
+                <span class="sim-badge sim-badge--cyan" id="sim8-damper-badge">Amortizoare: 100%</span>
+              </div>
+
+              <span class="sim-controls__hint">💡 Trage de diagrama Coleman pentru a schimba turația direct!</span>
+            </div>
+          </div>
+        </div>
+      `;
+    },
+
+    _buildSlide9SimPanel(data) {
+      return `
+        <div class="slide__simulation">
+          <div class="sim-canvas-wrap">
+            <canvas class="sim-canvas" id="sim-canvas-9"></canvas>
+          </div>
+          <div class="sim-controls">
+            <!-- Row 1: Sliders -->
+            <div class="sim-controls__row">
+              <div class="sim-control-group">
+                <label class="sim-label" for="sim9-freq">
+                  <span class="sim-label__text">Raport Frecvență Excitație \\(\\omega / \\omega_1\\):</span>
+                  <span class="sim-label__value" id="sim9-freq-val">1.00 (0.150 Hz)</span>
+                </label>
+                <input class="sim-slider" type="range" id="sim9-freq" min="0.50" max="1.50" step="0.01" value="1.00">
+              </div>
+
+              <div class="sim-control-group">
+                <label class="sim-label" for="sim9-mass">
+                  <span class="sim-label__text">Raport Masă Pendul \\(\\mu = m_2/M_1\\):</span>
+                  <span class="sim-label__value" id="sim9-mass-val">2.5% (m₂ ≈ 660 t)</span>
+                </label>
+                <input class="sim-slider" type="range" id="sim9-mass" min="0.5" max="7.0" step="0.1" value="2.5">
+              </div>
+
+              <div class="sim-control-group">
+                <label class="sim-label" for="sim9-zeta">
+                  <span class="sim-label__text">Amortizare Hidraulică TMD \\(\\zeta_2\\):</span>
+                  <span class="sim-label__value" id="sim9-zeta-val">10%</span>
+                </label>
+                <input class="sim-slider" type="range" id="sim9-zeta" min="1" max="25" step="1" value="10">
+              </div>
+            </div>
+
+            <!-- Row 2: Scenario Presets & TMD Toggle -->
+            <div class="sim-controls__presets">
+              <span class="sim-presets-title">Regim & Excitație:</span>
+              <button class="sim-btn sim-btn--preset" id="sim9-btn-toggle-tmd">🛡️ TMD: ACTIV (Absorbe)</button>
+              <button class="sim-btn" id="sim9-btn-den-hartog">🎯 Auto-Acordare Optimă Den Hartog</button>
+              <button class="sim-btn sim-btn--preset" id="sim9-preset-wind-resonant">💨 Vânt Rezonant (f = f₁)</button>
+              <button class="sim-btn" id="sim9-preset-typhoon">🌀 Taifunul Soudelor (2015)</button>
+              <button class="sim-btn" id="sim9-preset-earthquake">⚡ Seism (Mișcare Bază)</button>
+              <button class="sim-btn" id="sim9-btn-impulse">📍 Șoc / Impuls Izolat</button>
+            </div>
+
+            <!-- Row 3: Action Buttons & Live Indicators -->
+            <div class="sim-controls__actions">
+              <button class="sim-btn sim-btn--primary" id="sim9-play">⏸ Pauză</button>
+              <button class="sim-btn sim-btn--danger" id="sim9-reset">↺ Reset</button>
+
+              <div class="sim-controls__badges">
+                <span class="sim-badge sim-badge--cyan" id="sim9-mode-badge">🛡️ TMD ACTIV</span>
+                <span class="sim-badge sim-badge--cyan" id="sim9-disp-badge">Vârf Turn: ±22 cm</span>
+                <span class="sim-badge sim-badge--amber" id="sim9-tmd-badge">Cursă Bilă: 48 cm</span>
+              </div>
+
+              <span class="sim-controls__hint">💡 Poți trage cu mouse-ul/touch direct pe bila de aur pentru a induce o oscilație!</span>
+            </div>
+          </div>
+        </div>
+      `;
+    },
+
     _buildPlaceholderSimPanel(data) {
       const cfg = data.simConfig || {};
       return `
@@ -703,6 +824,10 @@
         sim = new SeismicBuildingsSim(canvasId, data.simConfig);
       } else if (data.simType === 'rotating-machinery') {
         sim = new RotatingMachinerySim(canvasId, data.simConfig);
+      } else if (data.simType === 'helicopter-resonance') {
+        sim = new HelicopterResonanceSim(canvasId, data.simConfig);
+      } else if (data.simType === 'tuned-mass-damper') {
+        sim = new TunedMassDamperSim(canvasId, data.simConfig);
       } else {
         sim = new PlaceholderSim(canvasId, data.simConfig || {});
       }

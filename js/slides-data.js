@@ -507,49 +507,129 @@
     // ===================== SLIDE 8 =====================
     {
       id: 8,
-      title: 'Rezonanța la Sol a Elicopterelor',
+      title: 'Rezonanța la Sol a Elicopterelor (Ground Resonance)',
       category: 'pericol',
-      simType: 'placeholder',
+      simType: 'helicopter-resonance',
       theoryHTML: `
-        <div class="theory-placeholder">
-          <div class="theory-placeholder__icon">🚁</div>
-          <div class="theory-placeholder__text">
-            <strong>Slide în pregătire</strong><br>
-            Cuplajul dinamic dintre rotorul elicopterului și trenul de aterizare.
-          </div>
-          <ul class="theory-placeholder__topics">
-            <li>Ground Resonance: mișcarea avans/întârziere a palelor</li>
-            <li>Cuplajul cu amortizoarele trenului de aterizare</li>
-            <li>Dezechilibrarea palelor generând oscilație violentă a fuselajului</li>
-            <li>Soluții: amortizoare în articulațiile palelor, decuplare frecvențe</li>
-          </ul>
+        <h3>1. Fenomenul Distructiv de „Ground Resonance”</h3>
+        <p>
+          În aviația elicopterelor, <strong>rezonanța la sol (Ground Resonance)</strong> este una dintre cele mai spectaculoase și violente instabilități aeroelastice mecanice cunoscute. Spre deosebire de ce sugerează denumirea populară, fenomenul <em>nu este de natură acustică</em>, ci reprezintă un <strong>cuplaj elastomecanic divergent</strong> între palele rotorului principal și mișcarea de legănare laterală a fuselajului sprijinit elastic pe sol prin trenul de aterizare.
+        </p>
+        <p>
+          În condiții nefavorabile, fenomenul se poate dezvolta în mai puțin de <strong>3 până la 5 secunde</strong>, generând accelerații de forfecare de peste \\(5 - 10\\text{ g}\\) care distrug catargul rotorului și dezintegrează complet aeronava pe pistă.
+        </p>
+
+        <h3>2. Articulațiile de Avans-Întârziere (Lead-Lag) și Centrul de Masă</h3>
+        <p>
+          Rotoarele elicopterelor complet articulate (cu 3 sau mai multe pale) au pivoți verticali care permit fiecărei pale să oscileze înainte și înapoi în planul discului rotor (mișcare de <em>lead-lag</em>). Această libertate este esențială pentru a absorbi forțele Coriolis cauzate de mișcarea de fluturare (flapping). Fiecare articulație este echipată cu un <strong>amortizor hidraulic sau elastomer de lag</strong>.
+        </p>
+        <p>
+          În regim nominal echilibrat, cele 3 pale sunt decalate simetric la \\(120^\\circ\\), iar centrul comun de greutate \\(G\\) al rotorului coincide exact cu centrul geometric al catargului:
+        </p>
+        <div class="theory-equation">
+          \\[
+          \\vec{r}_G = \\frac{1}{N} \\sum_{i=1}^N \\vec{R}_{\\text{cm}, i} = \\vec{0}
+          \\]
         </div>
+        <p>
+          Dacă însă aeronava suferă un <strong>șoc asimetric la aterizare</strong> (atingere pe o singură roată, denivelare) sau dacă un <strong>amortizor hidraulic cedează (se sparge/pierde fluid)</strong>, palele sunt forțate din poziția simetrică. Centrul de masă al rotorului devine excentric (\\(r_G > 0\\)) și începe să descrie o traiectorie circulară rapidă!
+        </p>
+
+        <h3>3. Teoria lui Coleman (1943) și Modul Regresiv de Vârtej</h3>
+        <p>
+          În celebrul raport <em>NACA Report 381 (1943)</em>, <strong>Robert P. Coleman</strong> a demonstrat că oscilația palelor generează două moduri de vârtej (whirl modes) în sistemul de referință fix al fuzelajului:
+        </p>
+        <div class="theory-equation">
+          \\[
+          \\omega_{\\text{progresiv}} = \\Omega + \\omega_{\\text{lag}}, \\qquad \\omega_{\\text{regresiv}} = |\\Omega - \\omega_{\\text{lag}}|
+          \\]
+        </div>
+        <p>
+          unde \\(\\Omega\\) este viteza unghiulară a rotorului (rad/s), iar \\(\\omega_{\\text{lag}}\\) este frecvența proprie de avans-întârziere a palei.
+        </p>
+        <p>
+          Instabilitatea critică apare atunci când frecvența <strong>modului regresiv</strong> coincide cu frecvența proprie de balans lateral a fuselajului pe amortizoarele elastice ale trenului de aterizare (\\(\\omega_{\\text{tren}} \\approx 3{,}0\\text{ Hz}\\)):
+        </p>
+        <div class="theory-equation">
+          \\[
+          |\\Omega - \\omega_{\\text{lag}}| \\approx \\omega_{\\text{tren}} \\implies \\text{INSTABILITATE DIVERGENTĂ}
+          \\]
+        </div>
+        <p>
+          Forța centrifugă excentrică zguduie fuselajul; la rândul său, balansul fuselajului forțează palele să se adune și mai mult în aceeași zonă a discului. Apare o buclă de reacție pozitivă cu amortizare netă negativă — oscilația crește exponențial până la ruperea structurală!
+        </p>
+
+        <h3>4. Procedura de Salvare a Pilotului: Decolarea de Urgență</h3>
+        <p>
+          Dacă turația rotorului este suficientă pentru portanță, singura salvare instantanee a echipajului este <strong>decolarea imediată (Pull Collective / Lift-off)</strong>:
+        </p>
+        <ul>
+          <li>Odată ce pneurile părăsesc solul, constanta elastică a trenului pe sol devine nulă (\\(k_{\\text{sol}} = 0\\)).</li>
+          <li>Frecvența de legănare pe sol dispare, decuplând mecanic fuselajul de rotor. Rezonanța la sol este <strong>stinsă instantaneu</strong> în fracțiuni de secundă!</li>
+          <li>Dacă turația este prea mică pentru decolare (în timpul pornirii pe pistă), pilotul trebuie să taie imediat motorul și să aplice frâna de rotor pentru a trece cât mai repede sub turația critică Coleman.</li>
+        </ul>
       `,
-      simConfig: { placeholderIcon: '🚁', placeholderTitle: 'Simulator Ground Resonance', placeholderDesc: 'Pale articulate ale rotorului pe tren elastic. Vizualizarea oscilației violente la dezechilibrare.' }
+      simConfig: { rpm: 320, damperHealth: 1.0 }
     },
 
     // ===================== SLIDE 9 =====================
     {
       id: 9,
-      title: 'Amortizorul Acordat de Masă (TMD)',
+      title: 'Amortizorul Acordat de Masă (TMD): Taipei 101',
       category: 'inginerie',
-      simType: 'placeholder',
+      simType: 'tuned-mass-damper',
       theoryHTML: `
-        <div class="theory-placeholder">
-          <div class="theory-placeholder__icon">🏗️</div>
-          <div class="theory-placeholder__text">
-            <strong>Slide în pregătire</strong><br>
-            Tuned Mass Damper: soluția inginerească anti-rezonanță.
-          </div>
-          <ul class="theory-placeholder__topics">
-            <li>Principiul TMD: masă secundară acordată pe \\(\\omega_0\\) a structurii</li>
-            <li>Exemplul Taipei 101: pendul de 660 tone</li>
-            <li>Modelul matematic cu 2 grade de libertate</li>
-            <li>Compararea structurii cu/fără TMD activat</li>
-          </ul>
+        <h3>1. Ce este un Amortizor Acordat de Masă (Tuned Mass Damper)?</h3>
+        <p>
+          Un <strong>TMD (Tuned Mass Damper)</strong> este un sistem mecanic pasiv avansat de control al vibrațiilor, instalat în structurile elastice înalte (zgârie-nori, turnuri de telecomunicații, poduri suspendate) pentru a proteja integritatea structurală și a preveni răul de mișcare (motion sickness) al ocupanților sub acțiunea vânturilor extreme și seismelor.
+        </p>
+        <p>
+          Cel mai spectaculos și faimos exemplu din lume este cel din zgârie-norul <strong>Taipei 101 din Taiwan (508 m înălțime)</strong>: un pendul gigant de <strong>660 de tone</strong> format din 41 de discuri circulare de oțel masiv placate cu aur (diametru 5,5 m), suspendat la 380 m înălțime între etajele 87 și 92 prin 8 cabluri groase de oțel de 42 mm și ancorat la bază prin 8 pistoane hidraulice radiale cu ulei vâscos.
+        </p>
+
+        <h3>2. Ecuațiile Diferențiale Cuplate (Modelul 2-DOF)</h3>
+        <p>
+          Sistemul este guvernat mecanic de un model cu două grade de libertate (2-DOF): masa principală a clădirii \\(M_1\\) (cu rigiditate modală \\(K_1\\) și amortizare structurală intrinsecă \\(C_1\\)) cuplată cu masa secundară a pendulului \\(m_2\\) prin rigiditatea efectivă de pendul gravitațional \\(k_2 = m_2 g / L\\) și amortizoarele hidraulice \\(c_2\\):
+        </p>
+        <div class="theory-equation">
+          \\[
+          M_1 \\ddot{x}_1 + (C_1 + c_2)\\dot{x}_1 + (K_1 + k_2)x_1 - c_2 \\dot{x}_2 - k_2 x_2 = F(t)
+          \\]
         </div>
+        <div class="theory-equation">
+          \\[
+          m_2 \\ddot{x}_2 + c_2(\\dot{x}_2 - \\dot{x}_1) + k_2(x_2 - x_1) = 0
+          \\]
+        </div>
+        <p>
+          Notând raportul de masă \\(\\mu = \\frac{m_2}{M_1}\\) (la Taipei 101, \\(\\mu \\approx 0{,}024\\), adică pendulul reprezintă \\(2{,}4\\%\\) din masa modală efectivă a primului mod de încovoiere), forța de inerție a pendulului acționează în opoziție de fază cu deformarea turnului, absorbind energia cinetică și disipând-o în căldură prin fluidul hidraulic.
+        </p>
+
+        <h3>3. Teorema de Optimizare Den Hartog (1928)</h3>
+        <p>
+          În anul 1928, renumitul inginer <strong>J. P. Den Hartog</strong> a descoperit condițiile analitice exacte pentru care răspunsul în frecvență al structurii principale este minimizat uniform:
+        </p>
+        <div class="theory-equation">
+          \\[
+          f_{\\text{opt}} = \\frac{\\omega_2}{\\omega_1} = \\frac{1}{1 + \\mu}, \\qquad \\zeta_{\\text{opt}} = \\sqrt{\\frac{3\\mu}{8(1 + \\mu)}}
+          \\]
+        </div>
+        <p>
+          <strong>Efectul Rezonanței Despicate (Peak Splitting):</strong><br>
+          Fără TMD, o clădire elastică zveltă are un factor de calitate uriaș (\\(Q \\approx 40 - 50\\)), rezultând oscilații rezonante periculoase. Conectarea amortizorului acordat optim <em>desparte vârful unic de rezonanță în două cocoașe laterale foarte joase</em>, reducând amplitudinea de balans a turnului cu <strong>până la 70% – 80%</strong>!
+        </p>
+
+        <h3>4. Testul Real: Super Taifunul Soudelor (2015)</h3>
+        <p>
+          Pe 8 august 2015, Taifunul Soudelor a lovit Taipeiul cu rafale record de <strong>234 km/h</strong>. Pendulul de 660 de tone a atins o cursă istorică de <strong>\\(\\pm 100\\text{ cm}\\)</strong>, disipând o putere mecanică uriașă în pistoanele hidraulice și păstrând clădirea în siguranță absolută.
+        </p>
       `,
-      simConfig: { placeholderIcon: '🏗️', placeholderTitle: 'Simulator TMD (Taipei 101)', placeholderDesc: 'Clădire supusă vântului/cutremurului cu buton de activare/dezactivare pendul TMD. Comparare directă a amplitudinii.' }
+      simConfig: {
+        f1: 0.15,
+        massRatio: 0.025,
+        zeta1: 0.012,
+        tmdActive: true
+      }
     },
 
     // ===================== SLIDE 10 =====================
