@@ -198,6 +198,8 @@
           simHTML = this._buildSlide8SimPanel(data);
         } else if (data.simType === 'tuned-mass-damper') {
           simHTML = this._buildSlide9SimPanel(data);
+        } else if (data.simType === 'afm-microscopy') {
+          simHTML = this._buildSlide10SimPanel(data);
         } else {
           simHTML = this._buildPlaceholderSimPanel(data);
         }
@@ -724,6 +726,70 @@
       `;
     },
 
+    _buildSlide10SimPanel(data) {
+      return `
+        <div class="slide__simulation">
+          <div class="sim-canvas-wrap">
+            <canvas class="sim-canvas" id="sim-canvas-${data.id}"></canvas>
+          </div>
+
+          <div class="sim-controls">
+            <!-- Row 1: Parameter Sliders -->
+            <div class="sim-controls__sliders">
+              <div class="sim-slider-group">
+                <label class="sim-label" for="sim10-freq">
+                  <span class="sim-label__text">Frecvență Piezo Shaker \\(f_{\\text{piezo}}\\):</span>
+                  <span class="sim-label__value" id="sim10-freq-val">150.0 kHz</span>
+                </label>
+                <input class="sim-slider" type="range" id="sim10-freq" min="144.0" max="156.0" step="0.1" value="150.0">
+              </div>
+
+              <div class="sim-slider-group">
+                <label class="sim-label" for="sim10-z">
+                  <span class="sim-label__text">Distanță Vârf-Probă \\(Z\\):</span>
+                  <span class="sim-label__value" id="sim10-z-val">8.0 nm</span>
+                </label>
+                <input class="sim-slider" type="range" id="sim10-z" min="1.0" max="25.0" step="0.5" value="8.0">
+              </div>
+
+              <div class="sim-slider-group">
+                <label class="sim-label" for="sim10-amp0">
+                  <span class="sim-label__text">Amplitudine Liberă \\(A_0\\):</span>
+                  <span class="sim-label__value" id="sim10-amp0-val">20 nm</span>
+                </label>
+                <input class="sim-slider" type="range" id="sim10-amp0" min="5" max="40" step="1" value="20">
+              </div>
+            </div>
+
+            <!-- Row 2: Operation Modes & Sample Crystal Presets -->
+            <div class="sim-controls__presets">
+              <span class="sim-presets-title">Regim & Eșantion:</span>
+              <button class="sim-btn" id="sim10-btn-scan">🔬 Scanare Automată 1D</button>
+              <button class="sim-btn" id="sim10-btn-toggle-mode">⚡ Mod: TAPPING (Intermitent)</button>
+              <button class="sim-btn sim-btn--preset" id="sim10-preset-silicon">⚛ Rețea Siliciu Si(111)</button>
+              <button class="sim-btn" id="sim10-preset-step">📐 Treaptă Mono-Strat (0.31 nm)</button>
+              <button class="sim-btn" id="sim10-preset-graphene">💎 Grafen & Cute Atomice</button>
+            </div>
+
+            <!-- Row 3: Action Buttons & Live Indicators -->
+            <div class="sim-controls__actions">
+              <button class="sim-btn sim-btn--primary" id="sim10-play">⏸ Pauză</button>
+              <button class="sim-btn sim-btn--danger" id="sim10-reset">↺ Reset</button>
+
+              <div class="sim-controls__badges">
+                <span class="sim-badge sim-badge--cyan" id="sim10-badge-freq">f_piezo: 150.0 kHz</span>
+                <span class="sim-badge sim-badge--cyan" id="sim10-badge-amp">Amplitudine: 20.0 nm</span>
+                <span class="sim-badge sim-badge--cyan" id="sim10-badge-shift">Δf: 0 Hz</span>
+                <span class="sim-badge sim-badge--amber" id="sim10-badge-height">Relief: 0.00 nm</span>
+              </div>
+
+              <span class="sim-controls__hint">💡 Poți trage cu mouse-ul direct pe probă pentru a schimba poziția X și distanța Z!</span>
+            </div>
+          </div>
+        </div>
+      `;
+    },
+
     _buildPlaceholderSimPanel(data) {
       const cfg = data.simConfig || {};
       return `
@@ -836,6 +902,8 @@
         sim = new HuygensPendulumsSim(canvasId, data.simConfig);
       } else if (data.simType === 'tuned-mass-damper') {
         sim = new TunedMassDamperSim(canvasId, data.simConfig);
+      } else if (data.simType === 'afm-microscopy') {
+        sim = new AFMMicroscopySim(canvasId, data.simConfig);
       } else {
         sim = new PlaceholderSim(canvasId, data.simConfig || {});
       }

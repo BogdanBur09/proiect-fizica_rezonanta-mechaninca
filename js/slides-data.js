@@ -632,25 +632,90 @@
     // ===================== SLIDE 10 =====================
     {
       id: 10,
-      title: 'Instrumente Muzicale și Rezonatoare Acustice',
+      title: 'Microscopia de Forță Atomică (AFM): Scanare la Nivel Atomic',
       category: 'avantaj',
-      simType: 'placeholder',
+      simType: 'afm-microscopy',
       theoryHTML: `
-        <div class="theory-placeholder">
-          <div class="theory-placeholder__icon">🎵</div>
-          <div class="theory-placeholder__text">
-            <strong>Slide în pregătire</strong><br>
-            Rezonanța ca amplificator natural al sunetului în instrumente muzicale.
-          </div>
-          <ul class="theory-placeholder__topics">
-            <li>Cutii de rezonanță: vioară, chitară, pian</li>
-            <li>Tuburi acustice: flaut, orgă, clarinete</li>
-            <li>Unde staționare, moduri proprii, noduri și ventre</li>
-            <li>Rezonanța Helmholtz și aplicații în boxe audio</li>
-          </ul>
+        <h3>1. Revoluția Nanotehnologică: Cum „Simțim” Atomii fără Lumină (1986)</h3>
+        <p>
+          Microscopul optic convențional este limitat fundamental de <strong>limita de difracție a luminii (criteriul Abbe: \\(\\approx 200\\text{ nm}\\))</strong>. Pentru a „vedea” atomii individuali (diametru de \\(\\approx 0{,}1 - 0{,}2\\text{ nm}\\)), Gerd Binnig, Calvin Quate și Christoph Gerber au inventat în 1986 <strong>Microscopul de Forță Atomică (AFM - Atomic Force Microscope)</strong>, o tehnologie distinsă cu Premiul Nobel ce a inaugurat era nanotehnologiei moderne.
+        </p>
+        <p>
+          AFM nu folosește lentile sau fotoni pentru formarea imaginii, ci o <strong>sondă mecanică nanometrică ultra-ascuțită (cu un singur atom în vârf)</strong>, montată la capătul liber al unei micro-lamele elastice de siliciu (<strong>cantilever</strong>). Cantileverul este menținut în <strong>rezonanță mecanică de înaltă frecvență</strong> (\\(f_0 \\approx 75 - 300\\text{ kHz}\\)), devenind cel mai sensibil transductor de forță cunoscut în știința materialelor.
+        </p>
+
+        <h3>2. Ecuația Mecanică a Cantileverului și Forțele van der Waals</h3>
+        <p>
+          Cantileverul este acționat piezoelectric la baza fixată printr-o forță armonică \\(F_{\\text{piezo}}\\cos(\\omega t)\\). La distanțe sub-nanometrice de suprafața probei (\\(z < 1\\text{ nm}\\)), vârful începe să interacționeze cu atomii probei prin forțe interatomice slabe <strong>van der Waals</strong> (forțe de dispersie London) și forțe electrostatice:
+        </p>
+        <div class="theory-equation">
+          \\[
+          m^* \\ddot{z} + \\frac{m^* \\omega_0}{Q} \\dot{z} + k z = F_{\\text{piezo}}\\cos(\\omega t) + F_{\\text{vdW}}(z)
+          \\]
         </div>
+        <p>
+          unde \\(m^*\\) este masa efectivă a lamelei (\\(\\approx 10^{-11}\\text{ kg}\\)), \\(k\\) este rigiditatea elastică (\\(0{,}1 - 40\\text{ N/m}\\)), iar \\(Q\\) este factorul de calitate (\\(300 - 600\\) în aer, \\(> 50\\,000\\) în vid).
+        </p>
+
+        <h3>3. Modificarea Rezonanței prin Gradientul de Forță (\\(\\Delta f_0\\))</h3>
+        <p>
+          Pentru oscilații de mică amplitudine, forța van der Waals poate fi liniarizată în jurul poziției medii. Termenul critic este <strong>gradientul forței (derivata spațială) \\(\\frac{\\partial F_{\\text{vdW}}}{\\partial z}\\)</strong>, care se comportă ca o modificare directă a rigidității resortului:
+        </p>
+        <div class="theory-equation">
+          \\[
+          k_{\\text{eff}} = k - \\frac{\\partial F_{\\text{vdW}}}{\\partial z} \\implies \\omega_{\\text{eff}} = \\sqrt{\\frac{k_{\\text{eff}}}{m^*}} = \\omega_0 \\sqrt{1 - \\frac{1}{k}\\frac{\\partial F_{\\text{vdW}}}{\\partial z}}
+          \\]
+        </div>
+        <p>
+          Dezvoltând în serie Taylor pentru \\(\\frac{\\partial F}{\\partial z} \\ll k\\), obținem <strong>formula fundamentală a microscopiei AFM de rezonanță</strong>:
+        </p>
+        <div class="theory-equation">
+          \\[
+          \\Delta f_0 \\approx -\\frac{f_0}{2 k} \\left( \\frac{\\partial F_{\\text{vdW}}}{\\partial z} \\right)
+          \\]
+        </div>
+        <ul>
+          <li>
+            <strong>Regim Atractiv (Gradient pozitiv \\(\\frac{\\partial F}{\\partial z} > 0\\)):</strong> Rigiditatea scade (<em>spring softening</em>), frecvența de rezonanță scade (\\(\\Delta f_0 < 0\\)).
+          </li>
+          <li>
+            <strong>Regim Repulsiv (Contact intermitent, \\(\\frac{\\partial F}{\\partial z} < 0\\)):</strong> La atingerea norilor electronici ai atomilor, repulsia Pauli rigidizează sistemul (<em>spring hardening</em>), crescând frecvența (\\(\\Delta f_0 > 0\\)).
+          </li>
+        </ul>
+
+        <h3>4. Modul Tapping (Amplitudine Modulată) vs Modul Non-Contact</h3>
+        <ul>
+          <li>
+            <strong>Modul Tapping (Intermittent Contact):</strong> Cantileverul oscilează cu o amplitudine mare (\\(10 - 50\\text{ nm}\\)), lovind ușor suprafața la fiecare ciclu. Amplitudinea scade brusc când sonda întâlnește o denivelare atomică. O buclă de reacție piezoelectrică (feedback PID) ridică sau coboară proba pentru a menține amplitudinea constantă — semnalul de comandă Z devenind direct <strong>harta topografică tridimensională</strong>. Acest mod elimină frecarea laterală distructivă, permițând scanarea ADN-ului și a proteinelor vii!
+          </li>
+          <li>
+            <strong>Modul Non-Contact (NC-AFM / Frecvență Modulată):</strong> Vârful nu atinge niciodată proba (oscilează la \\(0{,}5 - 2\\text{ nm}\\) deasupra ei), iar imaginea se obține monitorizând deviația \\(\\Delta f_0\\) cu rezoluție de sub \\(0{,}1\\text{ Hz}\\).
+          </li>
+        </ul>
+
+        <h3>5. Pârghia Optică (Optical Lever): Detecție Laser Picometrică</h3>
+        <p>
+          Cum măsurăm o deflecție mecanică de doar câțiva picometri (\\(10^{-12}\\text{ m}\\))? Printr-o <strong>pârghie optică laser</strong>: o diodă laser proiectează un fascicul pe spatele aurit al vârfului cantileverului, de unde se reflectă către o <strong>fotodiodă cuadrantică cu 4 cadrane (A, B, C, D)</strong>.
+        </p>
+        <p>
+          Datorită distanței optice mari (\\(L \\approx 5 - 10\\text{ cm}\\)) comparativ cu lungimea lamelei (\\(l \\approx 100\\;\\mu\\text{m}\\)), deflecția unghiulară este amplificată geometric de peste <strong>\\(1000\\times\\)</strong>:
+        </p>
+        <div class="theory-equation">
+          \\[
+          \\Delta y_{\\text{spot}} \\approx 2 L \\cdot \\theta_{\\text{cantilever}} = 3 \\frac{L}{l} \\cdot \\Delta z_{\\text{tip}}
+          \\]
+        </div>
+        <p>
+          Diferența de fotocurent \\((A + B) - (C + D)\\) oferă o rezoluție verticală record de <strong>\\(0{,}01\\text{ Å} = 1\\text{ picometru}\\)</strong>, de 100 de ori mai mică decât diametrul unui atom de hidrogen!
+        </p>
       `,
-      simConfig: { placeholderIcon: '🎵', placeholderTitle: 'Simulator Tub Acustic & Corp Rezonanță', placeholderDesc: 'Generare de armonici fundamentale și superioare cu vizualizarea undelor staționare sonore.' }
+      simConfig: {
+        f0: 150.0,
+        Q: 450,
+        k: 40.0,
+        freeAmp: 20.0,
+        sampleZ: 8.0
+      }
     },
 
     // ===================== SLIDE 11 =====================
