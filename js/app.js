@@ -200,6 +200,16 @@
           simHTML = this._buildSlide9SimPanel(data);
         } else if (data.simType === 'afm-microscopy') {
           simHTML = this._buildSlide10SimPanel(data);
+        } else if (data.simType === 'mems-gyroscope') {
+          simHTML = this._buildSlide11SimPanel(data);
+        } else if (data.simType === 'ultrasonic-lithotripsy') {
+          simHTML = this._buildSlide12SimPanel(data);
+        } else if (data.simType === 'energy-harvesting') {
+          simHTML = this._buildSlide13SimPanel(data);
+        } else if (data.simType === 'acoustic-ndt') {
+          simHTML = this._buildSlide14SimPanel(data);
+        } else if (data.simType === 'synthesis-matrix') {
+          simHTML = this._buildSlide15SimPanel(data);
         } else {
           simHTML = this._buildPlaceholderSimPanel(data);
         }
@@ -790,6 +800,298 @@
       `;
     },
 
+    _buildSlide11SimPanel(data) {
+      return `
+        <div class="slide__simulation">
+          <div class="sim-canvas-wrap">
+            <canvas class="sim-canvas" id="sim-canvas-${data.id}"></canvas>
+          </div>
+
+          <div class="sim-controls">
+            <div class="sim-controls__sliders">
+              <div class="sim-slider-group">
+                <label class="sim-label" for="sim11-omega">
+                  <span class="sim-label__text">Viteză Unghiulară \\(\\Omega_z\\):</span>
+                  <span class="sim-label__value" id="sim11-omega-val">+120 °/s</span>
+                </label>
+                <input class="sim-slider" type="range" id="sim11-omega" min="-300" max="300" step="5" value="120">
+              </div>
+
+              <div class="sim-slider-group">
+                <label class="sim-label" for="sim11-tuning">
+                  <span class="sim-label__text">Acord Moduri \\(\\omega_y / \\omega_x\\):</span>
+                  <span class="sim-label__value" id="sim11-tuning-val">1.000</span>
+                </label>
+                <input class="sim-slider" type="range" id="sim11-tuning" min="0.85" max="1.15" step="0.005" value="1.000">
+              </div>
+
+              <div class="sim-slider-group">
+                <label class="sim-label" for="sim11-q">
+                  <span class="sim-label__text">Factor Calitate Vid \\(Q\\):</span>
+                  <span class="sim-label__value" id="sim11-q-val">Q = 2000</span>
+                </label>
+                <input class="sim-slider" type="range" id="sim11-q" min="10" max="5000" step="10" value="2000">
+              </div>
+            </div>
+
+            <div class="sim-controls__presets">
+              <span class="sim-presets-title">Scenarii MEMS:</span>
+              <button class="sim-btn" id="sim11-preset-phone">📱 Rotație Rapidă Smartphone</button>
+              <button class="sim-btn" id="sim11-preset-drone">🛸 Viraj Dronă Quadcopter</button>
+              <button class="sim-btn sim-btn--preset" id="sim11-preset-vacuum">🌌 Capsulă Vidată (Q Înalt)</button>
+            </div>
+
+            <div class="sim-controls__actions">
+              <button class="sim-btn sim-btn--primary" id="sim11-play">⏸ Pauză</button>
+              <button class="sim-btn sim-btn--danger" id="sim11-reset">↺ Reset</button>
+
+              <div class="sim-controls__badges">
+                <span class="sim-badge sim-badge--cyan" id="sim11-badge-omega">Ωz: +120 °/s</span>
+                <span class="sim-badge sim-badge--amber" id="sim11-badge-yamp">Y_sense: 0.00 µm</span>
+                <span class="sim-badge sim-badge--cyan" id="sim11-badge-dcap">ΔC: 0.00 fF</span>
+                <span class="sim-badge sim-badge--purple" id="sim11-badge-gain">Amplif. Q: 2000×</span>
+              </div>
+
+              <span class="sim-controls__hint">💡 Rotește direct cipul MEMS cu mouse-ul/touch pe canvas pentru a induce forța Coriolis!</span>
+            </div>
+          </div>
+        </div>
+      `;
+    },
+
+    _buildSlide12SimPanel(data) {
+      return `
+        <div class="slide__simulation">
+          <div class="sim-canvas-wrap">
+            <canvas class="sim-canvas" id="sim-canvas-${data.id}"></canvas>
+          </div>
+
+          <div class="sim-controls">
+            <div class="sim-controls__sliders">
+              <div class="sim-slider-group">
+                <label class="sim-label" for="sim12-rate">
+                  <span class="sim-label__text">Frecvență Șocuri \\(f_{\\text{rep}}\\):</span>
+                  <span class="sim-label__value" id="sim12-rate-val">1.5 Hz</span>
+                </label>
+                <input class="sim-slider" type="range" id="sim12-rate" min="0.5" max="4.0" step="0.5" value="1.5">
+              </div>
+
+              <div class="sim-slider-group">
+                <label class="sim-label" for="sim12-pressure">
+                  <span class="sim-label__text">Presiune Acustică \\(P^+\\):</span>
+                  <span class="sim-label__value" id="sim12-pressure-val">40 MPa</span>
+                </label>
+                <input class="sim-slider" type="range" id="sim12-pressure" min="15" max="60" step="1" value="40">
+              </div>
+
+              <div class="sim-slider-group">
+                <label class="sim-label" for="sim12-offset">
+                  <span class="sim-label__text">Dezaxare Focar \\(F_2\\):</span>
+                  <span class="sim-label__value" id="sim12-offset-val">0 mm</span>
+                </label>
+                <input class="sim-slider" type="range" id="sim12-offset" min="-15" max="15" step="1" value="0">
+              </div>
+            </div>
+
+            <div class="sim-controls__presets">
+              <span class="sim-presets-title">Regim Clinic:</span>
+              <button class="sim-btn" id="sim12-preset-single">⚡ Emite 1 Șoc Izolat</button>
+              <button class="sim-btn sim-btn--preset" id="sim12-preset-auto">🔄 Tratament Continuu</button>
+              <button class="sim-btn" id="sim12-preset-stone">🪨 Piatră: Urat vs Oxalat</button>
+              <button class="sim-btn" id="sim12-preset-cusa">🔪 Mod CUSA (23 kHz)</button>
+            </div>
+
+            <div class="sim-controls__actions">
+              <button class="sim-btn sim-btn--primary" id="sim12-play">⏸ Pauză</button>
+              <button class="sim-btn sim-btn--danger" id="sim12-reset">↺ Reset</button>
+
+              <div class="sim-controls__badges">
+                <span class="sim-badge sim-badge--cyan" id="sim12-badge-state">ESWL Activ</span>
+                <span class="sim-badge sim-badge--amber" id="sim12-badge-integrity">Integritate: 100%</span>
+                <span class="sim-badge sim-badge--cyan" id="sim12-badge-pressure">P_focar: 40 MPa</span>
+                <span class="sim-badge sim-badge--purple" id="sim12-badge-shocks">Șocuri: 0</span>
+              </div>
+
+              <span class="sim-controls__hint">💡 Poți trage cu mouse-ul de ținta focarului F₂ pentru a testa precizia focalizării!</span>
+            </div>
+          </div>
+        </div>
+      `;
+    },
+
+    _buildSlide13SimPanel(data) {
+      return `
+        <div class="slide__simulation">
+          <div class="sim-canvas-wrap">
+            <canvas class="sim-canvas" id="sim-canvas-${data.id}"></canvas>
+          </div>
+
+          <div class="sim-controls">
+            <div class="sim-controls__sliders">
+              <div class="sim-slider-group">
+                <label class="sim-label" for="sim13-freq">
+                  <span class="sim-label__text">Frecvență Vibrație Bază \\(f\\):</span>
+                  <span class="sim-label__value" id="sim13-freq-val">60 Hz</span>
+                </label>
+                <input class="sim-slider" type="range" id="sim13-freq" min="20" max="120" step="1" value="60">
+              </div>
+
+              <div class="sim-slider-group">
+                <label class="sim-label" for="sim13-acc">
+                  <span class="sim-label__text">Accelerație Bază \\(a_{\\text{bază}}\\):</span>
+                  <span class="sim-label__value" id="sim13-acc-val">1.0 g</span>
+                </label>
+                <input class="sim-slider" type="range" id="sim13-acc" min="0.2" max="2.5" step="0.1" value="1.0">
+              </div>
+
+              <div class="sim-slider-group">
+                <label class="sim-label" for="sim13-load">
+                  <span class="sim-label__text">Rezistență Sarcină \\(R_L\\):</span>
+                  <span class="sim-label__value" id="sim13-load-val">50 kΩ</span>
+                </label>
+                <input class="sim-slider" type="range" id="sim13-load" min="5" max="200" step="5" value="50">
+              </div>
+            </div>
+
+            <div class="sim-controls__presets">
+              <span class="sim-presets-title">Regim & Sursă:</span>
+              <button class="sim-btn sim-btn--preset" id="sim13-preset-res">🏭 Motor Rezonant (60 Hz)</button>
+              <button class="sim-btn" id="sim13-preset-offres">📉 Vibrații Variabile (45 Hz)</button>
+              <button class="sim-btn" id="sim13-preset-duffing">🧲 Magneți Bistabili Duffing</button>
+              <button class="sim-btn" id="sim13-preset-sweep">🌊 Baleiaj Spectru (20–120 Hz)</button>
+            </div>
+
+            <div class="sim-controls__actions">
+              <button class="sim-btn sim-btn--primary" id="sim13-play">⏸ Pauză</button>
+              <button class="sim-btn sim-btn--danger" id="sim13-reset">↺ Reset</button>
+
+              <div class="sim-controls__badges">
+                <span class="sim-badge sim-badge--cyan" id="sim13-badge-mode">Liniar (Acordat 60 Hz)</span>
+                <span class="sim-badge sim-badge--amber" id="sim13-badge-vcap">V_cap: 0.00 V / 3.30 V</span>
+                <span class="sim-badge sim-badge--cyan" id="sim13-badge-power">Putere: 0.00 mW</span>
+                <span class="sim-badge sim-badge--purple" id="sim13-badge-packets">Pachete IoT: 0</span>
+              </div>
+
+              <span class="sim-controls__hint">💡 Poți ciupi vârful lamelei piezoelectrice cu mouse-ul pentru a produce un impuls de tensiune!</span>
+            </div>
+          </div>
+        </div>
+      `;
+    },
+
+    _buildSlide14SimPanel(data) {
+      return `
+        <div class="slide__simulation">
+          <div class="sim-canvas-wrap">
+            <canvas class="sim-canvas" id="sim-canvas-${data.id}"></canvas>
+          </div>
+
+          <div class="sim-controls">
+            <div class="sim-controls__sliders">
+              <div class="sim-slider-group">
+                <label class="sim-label" for="sim14-crack">
+                  <span class="sim-label__text">Lungime Fisură \\(a\\):</span>
+                  <span class="sim-label__value" id="sim14-crack-val">0.0 mm</span>
+                </label>
+                <input class="sim-slider" type="range" id="sim14-crack" min="0.0" max="3.0" step="0.1" value="0.0">
+              </div>
+
+              <div class="sim-slider-group">
+                <label class="sim-label" for="sim14-hitpos">
+                  <span class="sim-label__text">Poziție Impact Ciocan \\(u\\):</span>
+                  <span class="sim-label__value" id="sim14-hitpos-val">0.70 L</span>
+                </label>
+                <input class="sim-slider" type="range" id="sim14-hitpos" min="0.15" max="0.95" step="0.05" value="0.70">
+              </div>
+
+              <div class="sim-slider-group">
+                <label class="sim-label" for="sim14-helmholtz">
+                  <span class="sim-label__text">Acord Rezonator Helmholtz \\(f_H\\):</span>
+                  <span class="sim-label__value" id="sim14-helmholtz-val">1200 Hz</span>
+                </label>
+                <input class="sim-slider" type="range" id="sim14-helmholtz" min="400" max="2400" step="50" value="1200">
+              </div>
+            </div>
+
+            <div class="sim-controls__presets">
+              <span class="sim-presets-title">Inspecție & Mod:</span>
+              <button class="sim-btn" id="sim14-btn-strike">🔨 Lansează Ciocan de Test</button>
+              <button class="sim-btn sim-btn--preset" id="sim14-preset-healthy">🟢 Piesă Etalon Conformă</button>
+              <button class="sim-btn" id="sim14-preset-crack">🔴 Fisură Oboseală (1.5 mm)</button>
+              <button class="sim-btn" id="sim14-preset-void">🟡 Gol Intern Turnare</button>
+              <button class="sim-btn" id="sim14-preset-helmholtz">✈️ Mod Helmholtz (Nacelă)</button>
+            </div>
+
+            <div class="sim-controls__actions">
+              <button class="sim-btn sim-btn--primary" id="sim14-play">⏸ Pauză</button>
+              <button class="sim-btn sim-btn--danger" id="sim14-reset">↺ Reset</button>
+
+              <div class="sim-controls__badges">
+                <span class="sim-badge sim-badge--cyan" id="sim14-badge-f1">f₁: 480 Hz</span>
+                <span class="sim-badge sim-badge--cyan" id="sim14-badge-q">Q: 1650</span>
+                <span class="sim-badge sim-badge--amber" id="sim14-badge-verdict">✓ PIESĂ CONFORMĂ</span>
+              </div>
+
+              <span class="sim-controls__hint">💡 Dă click direct pe paleta de turbină pentru a o lovi cu ciocanul în acel punct!</span>
+            </div>
+          </div>
+        </div>
+      `;
+    },
+
+    _buildSlide15SimPanel(data) {
+      return `
+        <div class="slide__simulation">
+          <div class="sim-canvas-wrap">
+            <canvas class="sim-canvas" id="sim-canvas-${data.id}"></canvas>
+          </div>
+
+          <div class="sim-controls">
+            <div class="sim-controls__sliders">
+              <div class="sim-slider-group">
+                <label class="sim-label" for="sim15-freq">
+                  <span class="sim-label__text">Frecvență Universală \\(\\log_{10} f\\):</span>
+                  <span class="sim-label__value" id="sim15-freq-val">60.3 Hz</span>
+                </label>
+                <input class="sim-slider" type="range" id="sim15-freq" min="-1.0" max="6.0" step="0.02" value="1.78">
+              </div>
+
+              <div class="sim-slider-group">
+                <label class="sim-label" for="sim15-damping">
+                  <span class="sim-label__text">Multiplicator Amortizare \\(\\zeta\\):</span>
+                  <span class="sim-label__value" id="sim15-damping-val">1.0×</span>
+                </label>
+                <input class="sim-slider" type="range" id="sim15-damping" min="0.2" max="3.0" step="0.1" value="1.0">
+              </div>
+            </div>
+
+            <div class="sim-controls__presets">
+              <span class="sim-presets-title">Filtru Categorii:</span>
+              <button class="sim-btn sim-btn--preset" id="sim15-preset-all">🌐 Toate (14 Fenomene)</button>
+              <button class="sim-btn" id="sim15-preset-risks">🔴 Riscuri Catastrofale</button>
+              <button class="sim-btn" id="sim15-preset-control">🛡️ Soluții Amortizare</button>
+              <button class="sim-btn" id="sim15-preset-hightech">⚡ Aplicații Tehnologice</button>
+              <button class="sim-btn" id="sim15-preset-sweep">🌊 Baleiaj 0.1 Hz – 1 MHz</button>
+            </div>
+
+            <div class="sim-controls__actions">
+              <button class="sim-btn sim-btn--primary" id="sim15-play">⏸ Pauză</button>
+              <button class="sim-btn sim-btn--danger" id="sim15-reset">↺ Reset</button>
+
+              <div class="sim-controls__badges">
+                <span class="sim-badge sim-badge--cyan" id="sim15-badge-phenom">Recoltare Energie PZT</span>
+                <span class="sim-badge sim-badge--cyan" id="sim15-badge-freq">f₀: 60.0 Hz</span>
+                <span class="sim-badge sim-badge--amber" id="sim15-badge-q">Q: 80</span>
+                <span class="sim-badge sim-badge--purple" id="sim15-badge-bw">Δf₋₃dB: 0.75 Hz</span>
+              </div>
+
+              <span class="sim-controls__hint">💡 Dă click pe orice nod din harta logaritmică (f₀ vs Q) pentru a-i previzualiza simularea live!</span>
+            </div>
+          </div>
+        </div>
+      `;
+    },
+
     _buildPlaceholderSimPanel(data) {
       const cfg = data.simConfig || {};
       return `
@@ -904,6 +1206,16 @@
         sim = new TunedMassDamperSim(canvasId, data.simConfig);
       } else if (data.simType === 'afm-microscopy') {
         sim = new AFMMicroscopySim(canvasId, data.simConfig);
+      } else if (data.simType === 'mems-gyroscope') {
+        sim = new MEMSGyroscopeSim(canvasId, data.simConfig);
+      } else if (data.simType === 'ultrasonic-lithotripsy') {
+        sim = new UltrasonicLithotripsySim(canvasId, data.simConfig);
+      } else if (data.simType === 'energy-harvesting') {
+        sim = new EnergyHarvestingSim(canvasId, data.simConfig);
+      } else if (data.simType === 'acoustic-ndt') {
+        sim = new AcousticNDTSim(canvasId, data.simConfig);
+      } else if (data.simType === 'synthesis-matrix') {
+        sim = new SynthesisMatrixSim(canvasId, data.simConfig);
       } else {
         sim = new PlaceholderSim(canvasId, data.simConfig || {});
       }

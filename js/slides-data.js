@@ -721,121 +721,277 @@
     // ===================== SLIDE 11 =====================
     {
       id: 11,
-      title: 'Cronometrie: Oscilatori cu Cuarț',
+      title: 'Giroscopul MEMS cu Diapazon Vibrator (Smartphones & Drone)',
       category: 'avantaj',
-      simType: 'placeholder',
+      simType: 'mems-gyroscope',
       theoryHTML: `
-        <div class="theory-placeholder">
-          <div class="theory-placeholder__icon">⌚</div>
-          <div class="theory-placeholder__text">
-            <strong>Slide în pregătire</strong><br>
-            Efectul piezoelectric și stabilitatea incredibilă a cristalului de cuarț.
-          </div>
-          <ul class="theory-placeholder__topics">
-            <li>Efectul piezoelectric direct și invers</li>
-            <li>Frecvența de rezonanță: \\(32{,}768\\text{ kHz} = 2^{15}\\text{ Hz}\\)</li>
-            <li>Divizare binară pentru obținerea pulsului de 1 secundă</li>
-            <li>Factorul Q extrem de ridicat al cuarțului (\\(Q > 10^4\\))</li>
-          </ul>
+        <h3>1. Cum știe telefonul sau drona cu ce viteză se rotește?</h3>
+        <p>
+          Fiecare smartphone modern, dronă autonomă, cască VR și sistem de stabilizare auto conține un <strong>giroscop MEMS (Micro-Electro-Mechanical System)</strong> gravat fotolitografic direct pe siliciu, cu dimensiuni de sub \\(1\\text{ mm}^2\\). Spre deosebire de giroscoapele clasice cu volant greu care se învârt continuu, giroscopul MEMS folosește <strong>rezonanța mecanică cuplată prin forța Coriolis</strong> — fără niciun rulment și fără piese în rotație!
+        </p>
+
+        <h3>2. Structura 2-DOF și Axa de Acționare (Drive Mode X)</h3>
+        <p>
+          O micro-masă seismică centrală \\(m\\) (de ordinul a \\(1\\;\\mu\\text{g} = 10^{-9}\\text{ kg}\\)) este suspendată pe micro-arcuri de siliciu în serpentină (<em>folded-flexure springs</em>). Prin actuatori electrostatici tip pieptene (<em>comb drives</em>), masa este menținută permanent în oscilație rezonantă orizontală pe axa \\(X\\) la frecvența \\(f_x \\approx 20\\text{ kHz}\\):
+        </p>
+        <div class="theory-equation">
+          \\[
+          x(t) = X_0 \\sin(\\omega_x t), \\qquad v_x(t) = \\dot{x}(t) = X_0 \\omega_x \\cos(\\omega_x t)
+          \\]
         </div>
+
+        <h3>3. Transferul Coriolis și Rezonanța pe Axa de Detecție (Sense Mode Y)</h3>
+        <p>
+          Atunci când telefonul sau drona se rotește în plan cu viteza unghiulară \\(\\Omega_z\\), în sistemul de referință neinerțial al cipului apare <strong>forța Coriolis</strong> perpendiculară atât pe axa de rotație, cât și pe direcția vitezei:
+        </p>
+        <div class="theory-equation">
+          \\[
+          \\vec{F}_c = -2m (\\vec{\\Omega} \\times \\vec{v}) \\implies F_{c,y}(t) = 2 m X_0 \\omega_x \\Omega_z \\cos(\\omega_x t)
+          \\]
+        </div>
+        <p>
+          Această forță armonică minusculă excită oscilația pe axa ortogonală \\(Y\\), guvernată de ecuația diferențială a unui oscilator forțat:
+        </p>
+        <div class="theory-equation">
+          \\[
+          \\ddot{y} + \\frac{\\omega_y}{Q}\\dot{y} + \\omega_y^2 y = 2 X_0 \\omega_x \\Omega_z \\cos(\\omega_x t)
+          \\]
+        </div>
+        <p>
+          Secretul sensibilității uriașe constă în <strong>acordarea modurilor (mode-matching: \\(\\omega_y \\approx \\omega_x\\))</strong> într-o capsulă vidată (\\(Q \\approx 1000 - 5000\\)). La rezonanță, amplitudinea pe axa \\(Y\\) este amplificată mecanic cu factorul \\(Q\\), iar mișcarea masei devine o <strong>elipsă Lissajous</strong> în planul \\((x, y)\\):
+        </p>
+        <div class="theory-equation">
+          \\[
+          Y_{\\text{rezonanță}} = Q \\cdot \\frac{2 \\Omega_z X_0}{\\omega_x}
+          \\]
+        </div>
+
+        <h3>4. Citirea Capacitivă Diferențială în Femtofarazi (\\(\\text{fF}\\))</h3>
+        <p>
+          Deplasarea \\(y(t)\\) apropie și depărtează dinții mobili de electrozii ficși ai axei Sense (distanță nominală \\(d_0 \\approx 2\\;\\mu\\text{m}\\)), generând o variație diferențială de capacitate măsurată de circuitul ASIC integrat:
+        </p>
+        <div class="theory-equation">
+          \\[
+          \\Delta C = C_1 - C_2 = C_0 \\left( \\frac{1}{1 - y/d_0} - \\frac{1}{1 + y/d_0} \\right) \\approx \\frac{2 C_0}{d_0} y(t)
+          \\]
+        </div>
+        <p>
+          Dacă cipul pierde vidul (\\(Q\\) scade de la \\(2000\\) la \\(15\\) din cauza frecării cu aerul), amplificarea mecanică se prăbușește, demonstrând rolul indispensabil al rezonanței cu factor \\(Q\\) ridicat.
+        </p>
       `,
-      simConfig: { placeholderIcon: '⌚', placeholderTitle: 'Simulator Oscilator Piezoelectric', placeholderDesc: 'Cristal de cuarț în formă de diapazon supus tensiunii electrice alternative, filtrare la 32.768 kHz.' }
+      simConfig: {
+        fDriveHz: 20000,
+        X0Um: 4.0,
+        C0fF: 250,
+        gapUm: 2.0,
+        omegaZ: 120,
+        tuning: 1.000,
+        Q: 2000
+      }
     },
 
     // ===================== SLIDE 12 =====================
     {
       id: 12,
-      title: 'Ultrasunete și Litotripsie',
+      title: 'Litotriția Ultrasonică (ESWL) & Bisturiul Cavitațional (CUSA)',
       category: 'avantaj',
-      simType: 'placeholder',
+      simType: 'ultrasonic-lithotripsy',
       theoryHTML: `
-        <div class="theory-placeholder">
-          <div class="theory-placeholder__icon">🏥</div>
-          <div class="theory-placeholder__text">
-            <strong>Slide în pregătire</strong><br>
-            Rezonanța transductoarelor piezoelectrice: de la curățare la chirurgie.
-          </div>
-          <ul class="theory-placeholder__topics">
-            <li>Cavitația ultrasonică: formarea și implozia micro-bulelor</li>
-            <li>Litotripsie: distrugerea calculilor renali neinvaziv</li>
-            <li>Bisturiul ultrasonic în chirurgie</li>
-            <li>Curățarea ultrasonică industrială</li>
-          </ul>
+        <h3>1. Chirurgie fără Bisturiu: Sfărâmarea Pietrelor la Rinichi prin Unde de Șoc</h3>
+        <p>
+          <strong>Litotriția Extracorporeală cu Unde de Șoc (ESWL)</strong> reprezintă una dintre cele mai spectaculoase aplicații medicale ale rezonanței și focalizării acustice. Un transductor piezoelectric cu geometrie elipsoidală emite pachete scurte de unde acustice de mare energie prin piele și țesuturile moi (care au impedanță acustică aproape identică cu apa) către focarul geometric \\(F_2\\), unde este localizat calculul renal.
+        </p>
+        <p>
+          Deoarece țesutul sănătos nu este în focar și nu prezintă discontinuități rigide, unda îl traversează fără a-l leza; întreaga energie se concentrează exclusiv pe piatra dură.
+        </p>
+
+        <h3>2. Mecanismul Fizic al Fragmentării: Spalling și Rezonanță Internă</h3>
+        <p>
+          Fiecare impuls de presiune are un front de compresiune abrupt (\\(P^+ \\approx 20 - 60\\text{ MPa}\\)) urmat de o coadă de tracțiune negativă (\\(P^- \\approx -5 \\text{ până la } -12\\text{ MPa}\\)):
+        </p>
+        <ul>
+          <li>
+            <strong>Reflexie cu inversare de fază (Spalling):</strong> Când unda de compresiune atinge peretele posterior al calculului (interfața piatră–lichid, unde impedanța acustică scade brusc de la \\(Z_{\\text{piatră}} \\approx 6\\text{ MRayl}\\) la \\(Z_{\\text{apă}} \\approx 1{,}5\\text{ MRayl}\\)), unda reflectată își inversează semnul și devine o <strong>undă de tracțiune intensă</strong>.
+          </li>
+          <li>
+            <strong>Acumulare de fisuri și rezonanță mecanică:</strong> Rezistența la tracțiune a calculilor este mult mai mică decât cea la compresiune (\\(\\sigma_{\\text{ult}} \\approx 2 - 5\\text{ MPa}\\)). Undele staționare interne excită modurile proprii ale calculului, propagând microfisuri fractale până la pulverizarea în granule sub \\(1\\text{ mm}\\), eliminabile natural.
+          </li>
+        </ul>
+
+        <h3>3. Cavitația Acustică și Ecuația Rayleigh–Plesset</h3>
+        <p>
+          Unda negativă de tracțiune (\\(P^- < 0\\)) rupe local coeziunea lichidului din jurul pietrei, formând micro-bule de vapori. Dinamica razei bulei \\(R(t)\\) este descrisă de <strong>ecuația Rayleigh–Plesset</strong>:
+        </p>
+        <div class="theory-equation">
+          \\[
+          \\rho \\left( R \\ddot{R} + \\frac{3}{2}\\dot{R}^2 \\right) = P_g(R) - P_0 - P_{\\text{ac}}(t) - \\frac{2\\sigma}{R} - \\frac{4\\mu \\dot{R}}{R}
+          \\]
         </div>
+        <p>
+          La revenirea presiunii, bula intră în colaps violent asimetric în apropierea suprafeței rigide a calculului, generând <strong>microjeturi hidraulice de peste \\(500 - 1000\\text{ m/s}\\)</strong> care sapă și erodează stratul mineral exterior.
+        </p>
+
+        <h3>4. Bisturiul Ultrasonic Cavitațional (CUSA — \\(23\\text{ kHz}\\))</h3>
+        <p>
+          În neurochirurgie și chirurgia hepatică, <strong>bisturiul CUSA</strong> folosește un transductor piezoelectric acordat la rezonanța longitudinală de \\(23\\text{ kHz}\\) (amplitudine \\(\\approx 100 - 300\\;\\mu\\text{m}\\)). Vârful vibrator fragmentează prin cavitație selectivă celulele tumorale bogate în apă, lăsând intacte vasele de sânge și nervii datorită elasticității ridicate a fibrelor de colagen.
+        </p>
       `,
-      simConfig: { placeholderIcon: '🏥', placeholderTitle: 'Simulator Cavitație și Litotripsie', placeholderDesc: 'Undă ultrasonică focalizată pe o țintă cu vizualizarea imploziei micro-bulelor de cavitație.' }
+      simConfig: {
+        rate: 1.5,
+        pressure: 40,
+        focalOffset: 0,
+        stoneType: 'urate'
+      }
     },
 
     // ===================== SLIDE 13 =====================
     {
       id: 13,
-      title: 'Senzori MEMS și Microscopul AFM',
+      title: 'Recoltarea Rezonantă de Energie Piezoelectrică (Vibration Energy Harvesting)',
       category: 'avantaj',
-      simType: 'placeholder',
+      simType: 'energy-harvesting',
       theoryHTML: `
-        <div class="theory-placeholder">
-          <div class="theory-placeholder__icon">🔍</div>
-          <div class="theory-placeholder__text">
-            <strong>Slide în pregătire</strong><br>
-            Micro-giroscoape rezonante și microscopia de forță atomică.
-          </div>
-          <ul class="theory-placeholder__topics">
-            <li>MEMS: Micro-Electro-Mechanical Systems din smartphone-uri</li>
-            <li>Giroscoape capacitive rezonante: detectarea rotației</li>
-            <li>AFM Tapping Mode: cantilever rezonant cu ac nanometric</li>
-            <li>Detectarea modificării frecvenței la proximitatea atomilor</li>
-          </ul>
+        <h3>1. Ideea de Bază: Energie Gratis din Vibrații, Fără Baterii</h3>
+        <p>
+          Pe poduri, căi ferate, turbine și motoare industriale sunt montați mii de senzori wireless (IoT) care monitorizează temperatura sau fisurile. Schimbarea bateriilor în locuri inaccesibile este costisitoare și poluantă. Soluția este <strong>recoltarea rezonantă de energie (Energy Harvesting)</strong>: o lamelă elastică acoperită cu ceramică <strong>piezoelectrică (PZT)</strong> este prinsă pe structura vibrantă — exact ca un braț minuscul care se îndoaie înainte și înapoi și produce curent electric ori de câte ori este deformat!
+        </p>
+        <p>
+          Deoarece vibrațiile industriale sunt foarte mici, secretul este <strong>acordarea mecanică</strong>: alegem masa de tungsten din vârf astfel încât frecvența proprie a lamelei (\\(f_0 = 60\\text{ Hz}\\)) să coincidă cu frecvența motorului. La rezonanță, îndoirea este amplificată de zeci de ori, maximizând tensiunea electrică generată.
+        </p>
+
+        <h3>2. Modelul Cuplat Electromecanic și Redresarea IoT</h3>
+        <p>
+          Vibrația bazei \\(\\ddot{y}_{\\text{bază}}\\) antrenează lamela, iar efectul piezoelectric (coeficient de cuplaj \\(\\theta\\)) transformă deformarea \\(z(t)\\) în tensiune electrică \\(V(t)\\) (și invers, curentul extraș face o mică amortizare electrică asupra lamelei):
+        </p>
+        <div class="theory-equation">
+          \\[
+          m \\ddot{z} + c \\dot{z} + k z - \\theta V = -m \\ddot{y}_{\\text{bază}}, \\qquad C_p \\dot{V} + \\frac{V}{R_L} + \\theta \\dot{z} = 0
+          \\]
         </div>
+        <p>
+          Cum ajunge energia la senzor? Tensiunea alternativă produsă de ceramică trece printr-o <strong>punte redresoare cu 4 diode Schottky</strong>, care o transformă în curent continuu și încarcă treptat un <strong>condensator de stocare</strong>. Când tensiunea din condensator atinge pragul de <strong>\\(3{,}3\\text{ V}\\)</strong>, modulul radio IoT se trezește automat, transmite un pachet wireless de date și reia ciclul — 100% autonom!
+        </p>
+
+        <h3>3. De ce Punem „Magneți Bistabili Duffing” în Fața Lamelei?</h3>
+        <p>
+          O lamelă clasică are un dezavantaj major: funcționează bine <strong>doar la o singură frecvență fixă</strong> (de exemplu fix \\(60\\text{ Hz}\\)). Dacă motorul își schimbă turația la \\(45\\text{ Hz}\\), lamela iese din rezonanță și producția de energie cade dramatic.
+        </p>
+        <p>
+          <strong>Trucul ingineresc:</strong> plasăm doi magneți permanenți care se resping în dreptul vârfului lamelei. Acum lamela nu mai stă dreaptă la mijloc, ci are <strong>două poziții stabile</strong> (înclinată sus sau jos — potențial <em>Duffing cu două gropi</em>):
+        </p>
+        <div class="theory-equation">
+          \\[
+          V_{\\text{mec}}(z) = -\\frac{1}{2}\\alpha z^2 + \\frac{1}{4}\\beta z^4
+          \\]
+        </div>
+        <p>
+          Sub acțiunea vibrațiilor chiar și la alte frecvențe decât \\(60\\text{ Hz}\\), lamela „sare” brusc dintr-o groapă de potențial în cealaltă cu mișcări ample, <strong>lărgind enorm banda de frecvențe utile</strong> și menținând condensatorul încărcat chiar și pe vibrații neregulate!
+        </p>
       `,
-      simConfig: { placeholderIcon: '🔍', placeholderTitle: 'Simulator Microscop AFM', placeholderDesc: 'Cantilever rezonant baleiind o suprafață atomică, detectând variația frecvenței la apropierea de atomi.' }
+      simConfig: {
+        f0: 60.0
+      }
     },
 
     // ===================== SLIDE 14 =====================
     {
       id: 14,
-      title: 'Recoltarea de Energie (Energy Harvesting)',
+      title: 'Testarea Nedistructivă Acustică (ART / NDT) & Rezonatorul Helmholtz',
       category: 'avantaj',
-      simType: 'placeholder',
+      simType: 'acoustic-ndt',
       theoryHTML: `
-        <div class="theory-placeholder">
-          <div class="theory-placeholder__icon">⚡</div>
-          <div class="theory-placeholder__text">
-            <strong>Slide în pregătire</strong><br>
-            Conversia vibrațiilor mecanice ambientale în energie electrică utilă.
-          </div>
-          <ul class="theory-placeholder__topics">
-            <li>Surse de vibrații: poduri, motoare, căi ferate, corpul uman</li>
-            <li>Micro-grinzi piezoelectrice acordate pe frecvența sursei</li>
-            <li>Modelul oscilator rezonant → convertor de energie</li>
-            <li>Aplicații: senzori wireless autonomi, IoT, implante medicale</li>
-          </ul>
+        <h3>1. Cum Detectezi o Fisură Ascunsă Fără să Tai Piesa? (Metoda ART / NDT)</h3>
+        <p>
+          În industria aerospațială și auto, fiecare paletă de turbină din titan, disc de frână sau rulment critic trebuie verificat 100% înainte de zbor. O fisură internă microscopică este invizibilă cu ochiul liber, dar modifică imediat <strong>semnătura de rezonanță acustică</strong> a piesei!
+        </p>
+        <p>
+          Principiul <strong>Testării prin Rezonanță Acustică (ART — Acoustic Resonance Testing)</strong> extinde testul clasic al „sunetului cristalin de porțelan intact vs sunet dogit de vas crăpat”: un ciocan automat lovește piesa cu un impuls scurt, iar un <strong>vibrometru laser Doppler</strong> îi înregistrează vibrațiile libere și calculează spectrul de frecvență FFT.
+        </p>
+
+        <h3>2. Deplasarea Frecvențelor Proprii (\\(\\Delta f < 0\\)) și Prăbușirea lui \\(Q\\)</h3>
+        <p>
+          Pentru o grindă/paletă elastică omogenă (model Euler–Bernoulli), frecvențele proprii naturale sunt discrete și determinate de rigiditatea la încovoiere \\(EI\\) și densitatea liniară \\(\\rho A\\):
+        </p>
+        <div class="theory-equation">
+          \\[
+          f_n = \\frac{\\beta_n^2}{2\\pi L^2}\\sqrt{\\frac{E I}{\\rho A}}, \\qquad (\\beta_1 L \\approx 1{,}875,\\; \\beta_2 L \\approx 4{,}694,\\; \\beta_3 L \\approx 7{,}855)
+          \\]
         </div>
+        <p>
+          Apariția unei fisuri de oboseală la rădăcina paletei (sau a unui gol de turnare) produce trei efecte diagnostice inconfundabile în spectrul FFT:
+        </p>
+        <ul>
+          <li>
+            <strong>Scăderea frecvențelor proprii (\\(\\Delta f_n < 0\\)):</strong> Fisura reduce local rigiditatea efectivă (\\(k \\to k - \\Delta k\\)), deplasând vârfurile spectrale spre stânga.
+          </li>
+          <li>
+            <strong>Dedublarea vârfurilor (Mode Splitting):</strong> Ruperea simetriei axiale desparte modurile degenerate în două frecvențe apropiate.
+          </li>
+          <li>
+            <strong>Prăbușirea factorului de calitate \\(Q\\):</strong> Frecarea dintre pereții fisurii în timpul vibrației disipează rapid energia, lățind vârfurile și coborând \\(Q\\) de la \\(\\sim 1650\\) sub \\(350\\).
+          </li>
+        </ul>
+
+        <h3>3. Aplicație Complementară: Rezonatorul Helmholtz în Motoarele cu Reacție</h3>
+        <p>
+          Dacă în NDT rezonanța ne ajută să <em>ascultăm</em> defectele, în nacelele motoarelor de avion folosim <strong>rezonatorul Helmholtz</strong> pentru a <em>anihila</em> zgomotul asurzitor al ventilatorului de turbină. O cavitate de volum \\(V\\) conectată la fluxul de aer printr-un gât scurt de arie \\(A\\) și lungime efectivă \\(L_{\\text{eff}}\\) formează un oscilator masă–arc acustic:
+        </p>
+        <div class="theory-equation">
+          \\[
+          f_H = \\frac{v_s}{2\\pi}\\sqrt{\\frac{A}{V \\cdot L_{\\text{eff}}}}
+          \\]
+        </div>
+        <p>
+          Acordând cavitățile din panourile fonoabsorbante ale nacelei exact pe frecvența dominantă a turbinei, aerul din gât intră în rezonanță puternică și disipă energia sonoră prin frecare vâscoasă, atenuând zgomotul cu peste \\(15 - 20\\text{ dB}\\) fără a bloca admisia aerului!
+        </p>
       `,
-      simConfig: { placeholderIcon: '⚡', placeholderTitle: 'Simulator Energy Harvester', placeholderDesc: 'Grilă piezoelectrică acordabilă pe frecvența vibrației externe, cu afișarea energiei generate și stocate.' }
+      simConfig: {
+        defectType: 'healthy',
+        crackLength: 0.0,
+        hitPos: 0.70,
+        helmholtzFreq: 1200,
+        helmholtzMode: false
+      }
     },
 
     // ===================== SLIDE 15 =====================
     {
       id: 15,
-      title: 'Concluzii: Matrice Comparativă și Simulator Universal',
+      title: 'Sinteză Tehnologică Globală: Matricea Universală de Rezonanță',
       category: 'sinteza',
-      simType: 'placeholder',
+      simType: 'synthesis-matrix',
       theoryHTML: `
-        <div class="theory-placeholder">
-          <div class="theory-placeholder__icon">🎯</div>
-          <div class="theory-placeholder__text">
-            <strong>Slide în pregătire</strong><br>
-            Sinteză finală: avantaje vs dezavantaje, criterii de proiectare.
-          </div>
-          <ul class="theory-placeholder__topics">
-            <li>Matrice comparativă: consecințe distructive vs aplicații utile</li>
-            <li>Criterii inginerești: când evităm vs amplificăm rezonanța</li>
-            <li>Sandbox complet: configurare liberă masă-arc-amortizor-forță</li>
-            <li>Generare automată de raport de rezonanță</li>
-          </ul>
+        <h3>1. O Singură Lege Fizică pe 7 Ordine de Mărime (\\(0{,}1\\text{ Hz} \\to 1\\text{ MHz}\\))</h3>
+        <p>
+          De-a lungul celor 14 slide-uri anterioare am observat același fenomen fundamental — <strong>rezonanța mecanică</strong> — manifestându-se la scări spațiale și temporale complet diferite: de la zgârie-nori de \\(508\\text{ m}\\) care oscilează o dată la câteva secunde, până la micro-lamele de siliciu ale microscopului AFM care vibrează de sute de mii de ori pe secundă.
+        </p>
+        <p>
+          Indiferent de scară, comportamentul oricărui sistem liniar în apropierea unui mod propriu este unificat de aceeași ecuație adimensională a <strong>amplificării dinamice \\(M(r, Q)\\)</strong> și a <strong>lățimii de bandă \\(\\Delta f_{-3\\text{dB}}\\)</strong>:
+        </p>
+        <div class="theory-equation">
+          \\[
+          M(r, Q) = \\frac{1}{\\sqrt{(1 - r^2)^2 + \\left(\\frac{r}{Q}\\right)^2}}, \\qquad r = \\frac{f}{f_0}, \\qquad \\Delta f_{-3\\text{dB}} = \\frac{f_0}{Q}
+          \\]
         </div>
+
+        <h3>2. Concluzia Inginerească: Când Combatem vs. Când Exploatăm Rezonanța</h3>
+        <ul>
+          <li>
+            <strong>Când trebuie EVITATĂ sau AMORTIZATĂ (\\(Q\\) mic sau decuplare):</strong>
+            La poduri suspendate (Tacoma Narrows, Millennium Bridge), clădiri în zone seismice (izolare LRB), zgârie-nori expuși taifunurilor (TMD Taipei 101) și rotoare industriale (trecerea rapidă prin turația critică și echilibrarea dinamică). Aici introducem amortizare vâscoasă sau absorboare acordate pentru a tăia vârful de amplificare.
+          </li>
+          <li>
+            <strong>Când o AMPLIFICĂM intenționat (\\(Q\\) foarte mare):</strong>
+            În tehnologiile de vârf! Senzorii MEMS din smartphone-uri (\\(Q \\approx 2000\\)) și microscoapele atomice AFM (\\(Q \\approx 500\\)) se bazează pe vârfuri de rezonanță extrem de ascuțite pentru a detecta forțe de piconewtoni; litotriția ESWL și recoltarea piezo de energie concentrează energia acustică și mecanică exact la frecvența proprie; iar testarea NDT ascultă modificarea lui \\(f_0\\) și \\(Q\\) pentru a salva vieți în aviație.
+          </li>
+        </ul>
+
+        <h3>3. Laboratorul Panoramă (Harta Logaritmică \\(f_0\\) vs. \\(Q\\))</h3>
+        <p>
+          Explorează în partea dreaptă toate cele <strong>14 fenomene studiate în proiect</strong>, proiectate pe diagrama logaritmică globală (de la \\(0{,}1\\text{ Hz}\\) la \\(1\\text{ MHz}\\), cu \\(Q\\) de la \\(5\\) la \\(10^6\\)). Selectează orice nod sau folosește glisorul de baleiaj universal pentru a previzualiza live mecanismul fizic, ecuația și rolul său ingineresc!
+        </p>
       `,
-      simConfig: { placeholderIcon: '🎯', placeholderTitle: 'Banc de Testare Universal', placeholderDesc: 'Sandbox complet: configurare masă-arc-amortizor-forță cu generare automată de raport de rezonanță.' }
+      simConfig: {}
     }
   ];
 
