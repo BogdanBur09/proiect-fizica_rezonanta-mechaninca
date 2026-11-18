@@ -749,32 +749,32 @@
               <div class="sim-slider-group">
                 <label class="sim-label" for="sim10-freq">
                   <span class="sim-label__text">Frecvență Piezo Shaker \\(f_{\\text{piezo}}\\):</span>
-                  <span class="sim-label__value" id="sim10-freq-val">150.0 kHz</span>
+                  <span class="sim-label__value" id="sim10-freq-val">150.00 kHz</span>
                 </label>
-                <input class="sim-slider" type="range" id="sim10-freq" min="144.0" max="156.0" step="0.1" value="150.0">
+                <input class="sim-slider" type="range" id="sim10-freq" min="147.0" max="153.0" step="0.05" value="150.00">
               </div>
 
               <div class="sim-slider-group">
                 <label class="sim-label" for="sim10-z">
-                  <span class="sim-label__text">Distanță Vârf-Probă \\(Z\\):</span>
-                  <span class="sim-label__value" id="sim10-z-val">8.0 nm</span>
+                  <span class="sim-label__text">Înălțime Vârf-Probă \\(Z\\):</span>
+                  <span class="sim-label__value" id="sim10-z-val">10.3 nm</span>
                 </label>
-                <input class="sim-slider" type="range" id="sim10-z" min="1.0" max="25.0" step="0.5" value="8.0">
+                <input class="sim-slider" type="range" id="sim10-z" min="3.0" max="22.0" step="0.2" value="10.3">
               </div>
 
               <div class="sim-slider-group">
                 <label class="sim-label" for="sim10-amp0">
                   <span class="sim-label__text">Amplitudine Liberă \\(A_0\\):</span>
-                  <span class="sim-label__value" id="sim10-amp0-val">20 nm</span>
+                  <span class="sim-label__value" id="sim10-amp0-val">10 nm</span>
                 </label>
-                <input class="sim-slider" type="range" id="sim10-amp0" min="5" max="40" step="1" value="20">
+                <input class="sim-slider" type="range" id="sim10-amp0" min="4" max="18" step="1" value="10">
               </div>
             </div>
 
             <!-- Row 2: Operation Modes & Sample Crystal Presets -->
             <div class="sim-controls__presets">
               <span class="sim-presets-title">Regim & Eșantion:</span>
-              <button class="sim-btn" id="sim10-btn-scan">🔬 Scanare Automată 1D</button>
+              <button class="sim-btn sim-btn--preset" id="sim10-btn-scan">⏹ Oprește Scanarea</button>
               <button class="sim-btn" id="sim10-btn-toggle-mode">⚡ Mod: TAPPING (Intermitent)</button>
               <button class="sim-btn sim-btn--preset" id="sim10-preset-silicon">⚛ Rețea Siliciu Si(111)</button>
               <button class="sim-btn" id="sim10-preset-step">📐 Treaptă Mono-Strat (0.31 nm)</button>
